@@ -75,9 +75,9 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
-def stack_spatial_dims(data: xr.Dataset, x_name: str = 'rlon', y_name: str = 'rlat') -> xr.Dataset:
+def stack_spatial_dims(data: xr.Dataset, x_name: str, y_name: str) -> xr.Dataset:
     """
-    Stacks the spatial dimensions (given by x_name and y_name) of the dataset into a single
+    Stacks the two spatial dimensions (x_name and y_name) of the dataset into a single
     coordinate variable.
 
     Parameters
@@ -109,5 +109,5 @@ def stack_spatial_dims(data: xr.Dataset, x_name: str = 'rlon', y_name: str = 'rl
 # data = xr.open_mfdataset(paths).isel(rlat=slice(20,276),rlon=slice(110,366)).sel(time=slice(f"{years[0]}-01-01",f"{years[-1]}-12-31"))
 # data = rename_wx_variables(data)
 # data = rename_coordinates(data)
-# data = stack_spatial_dims(data)
+# data = stack_spatial_dims(data, x_name='rlon', y_name='rlat')
 # print(data.dims)
