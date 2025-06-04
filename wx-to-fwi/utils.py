@@ -9,7 +9,7 @@ def get_config() -> dict:
     Returns:
         dict: Configuration dictionary.
     """
-    config_path = "../conf/config.yaml"
+    config_path = "./conf/config.yaml"
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
     return config
@@ -52,10 +52,11 @@ def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
     """
 
     # Common alternative names for certain weather variables
-    alternative_TEMP_names = ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature']
-    alternative_RH_names = ['RH2', 'rh', 'RelativeHumidity', 'relativehumidity', 'relative_humidity']
-    alternative_WS_names = ['WS10', 'WindSpeed', 'WindSpeed10m', 'wind_speed']
-    alternative_PREC_names = ['Precipitation', 'Precip', 'Rainfall', 'Rain', 'prec', 'precip', 'precipitation']
+    config = get_config()
+    alternative_TEMP_names = config["data_vars"]["air_temperature"]["alternative_names"]
+    alternative_RH_names = config["data_vars"]["relative_humidity"]["alternative_names"]
+    alternative_WS_names = config["data_vars"]["wind_speed"]["alternative_names"]
+    alternative_PREC_names = config["data_vars"]["precipitation"]["alternative_names"]
 
     # Loop through variables in the dataset and rename them if they match any of the alternative names
     for var in data.data_vars:
