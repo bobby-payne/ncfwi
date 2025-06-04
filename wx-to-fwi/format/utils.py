@@ -9,7 +9,8 @@ def get_config() -> dict:
     Returns:
         dict: Configuration dictionary.
     """
-    with open(path_to_config, "r") as file:
+    config_path = "../conf/config.yaml"
+    with open(config_path, "r") as file:
         config = yaml.safe_load(file)
     return config
 
