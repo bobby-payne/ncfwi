@@ -1,4 +1,40 @@
 import xarray as xr
+import yaml
+
+
+def get_config(path_to_config: str = "../conf/config.yaml") -> dict:
+    """
+    Load configuration from a YAML file.
+
+    Parameters:
+        path_to_config (str): Path to the configuration file. Default is "../conf/config.yaml".
+    
+    Returns:
+        dict: Configuration dictionary.
+    """
+    with open(path_to_config, "r") as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+def get_paths_to_data(path_to_config: str = "../conf/config.yaml") -> dict:
+    """
+    Get paths to data from the configuration file.
+    Parameters:
+        path_to_config (str): Path to the configuration file. Default is "../conf/config.yaml".
+    
+    Returns:
+        dict: Dictionary containing data paths.
+    """
+    config = get_config(path_to_config)
+    path_dictionary = {
+        "wind_speed": config["data_vars"]["wind_speed"]["path"],
+        "air_temperature": config["data_vars"]["air_temperature"]["path"],
+        "relative_humidity": config["data_vars"]["relative_humidity"]["path"],
+        "precipitation": config["data_vars"]["precipitation"]["path"],
+    }
+
+    return path_dictionary
 
 
 def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
@@ -20,10 +56,10 @@ def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
     """
 
     # Common alternative names for certain weather variables
-    alternative_TEMP_names = ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature']
-    alternative_RH_names = ['RH2', 'rh', 'RelativeHumidity', 'relativehumidity']
-    alternative_WS_names = ['WS10', 'WindSpeed', 'WindSpeed10m']
-    alternative_PREC_names = ['Precipitation', 'Precip', 'Rainfall', 'Rain', 'prec', 'precip']
+    alternative_TEMP_names = ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature']
+    alternative_RH_names = ['RH2', 'rh', 'RelativeHumidity', 'relativehumidity', 'relative_humidity']
+    alternative_WS_names = ['WS10', 'WindSpeed', 'WindSpeed10m', 'wind_speed']
+    alternative_PREC_names = ['Precipitation', 'Precip', 'Rainfall', 'Rain', 'prec', 'precip', 'precipitation']
 
     # Loop through variables in the dataset and rename them if they match any of the alternative names
     for var in data.data_vars:
