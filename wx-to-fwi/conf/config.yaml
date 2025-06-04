@@ -18,7 +18,7 @@ data_vars:
 
   wind_speed:
 
-    alternative_names: ["wind_speed_10m", "WS10"]
+    alternative_names: ["wind_speed_10m", "WS10", "WS"]
     units: "m/s"
     description: "Wind speed at 10 meters above ground level"
     path: "/users/rpayne/data/unproc/WRF/ctl/WS10/"
