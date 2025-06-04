@@ -2,12 +2,9 @@ import xarray as xr
 import yaml
 
 
-def get_config(path_to_config: str = "../conf/config.yaml") -> dict:
+def get_config() -> dict:
     """
     Load configuration from a YAML file.
-
-    Parameters:
-        path_to_config (str): Path to the configuration file. Default is "../conf/config.yaml".
     
     Returns:
         dict: Configuration dictionary.
@@ -17,16 +14,14 @@ def get_config(path_to_config: str = "../conf/config.yaml") -> dict:
     return config
 
 
-def get_paths_to_data(path_to_config: str = "../conf/config.yaml") -> dict:
+def get_paths_to_data() -> dict:
     """
     Get paths to data from the configuration file.
-    Parameters:
-        path_to_config (str): Path to the configuration file. Default is "../conf/config.yaml".
     
     Returns:
         dict: Dictionary containing data paths.
     """
-    config = get_config(path_to_config)
+    config = get_config()
     path_dictionary = {
         "wind_speed": config["data_vars"]["wind_speed"]["path"],
         "air_temperature": config["data_vars"]["air_temperature"]["path"],
