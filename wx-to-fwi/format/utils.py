@@ -1,4 +1,36 @@
 import xarray as xr
+import yaml
+
+
+def get_config() -> dict:
+    """
+    Load configuration from a YAML file.
+    
+    Returns:
+        dict: Configuration dictionary.
+    """
+    config_path = "../conf/config.yaml"
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+def get_paths_to_data() -> dict:
+    """
+    Get paths to data from the configuration file.
+    
+    Returns:
+        dict: Dictionary containing data paths.
+    """
+    config = get_config()
+    path_dictionary = {
+        "wind_speed": config["data_vars"]["wind_speed"]["path"],
+        "air_temperature": config["data_vars"]["air_temperature"]["path"],
+        "relative_humidity": config["data_vars"]["relative_humidity"]["path"],
+        "precipitation": config["data_vars"]["precipitation"]["path"],
+    }
+
+    return path_dictionary
 
 
 def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
@@ -20,10 +52,10 @@ def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
     """
 
     # Common alternative names for certain weather variables
-    alternative_TEMP_names = ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature']
-    alternative_RH_names = ['RH2', 'rh', 'RelativeHumidity', 'relativehumidity']
-    alternative_WS_names = ['WS10', 'WindSpeed', 'WindSpeed10m']
-    alternative_PREC_names = ['Precipitation', 'Precip', 'Rainfall', 'Rain', 'prec', 'precip']
+    alternative_TEMP_names = ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature']
+    alternative_RH_names = ['RH2', 'rh', 'RelativeHumidity', 'relativehumidity', 'relative_humidity']
+    alternative_WS_names = ['WS10', 'WindSpeed', 'WindSpeed10m', 'wind_speed']
+    alternative_PREC_names = ['Precipitation', 'Precip', 'Rainfall', 'Rain', 'prec', 'precip', 'precipitation']
 
     # Loop through variables in the dataset and rename them if they match any of the alternative names
     for var in data.data_vars:
@@ -75,6 +107,42 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
+def apply_transformations(wx_data: xr.Dataset) -> xr.Dataset:
+    """
+    Transform the dataset by applying a mathematical operation to the variable.
+    Transforms are specified in the config file and evaluated using Python's
+    in-built eval function.
+
+    Parameters
+    ----------
+    data : xarray.Dataset
+        The dataset containing the weather variables.
+
+    Returns
+    -------
+    xarray.Dataset
+        The transformed dataset with the transformations applied.
+    """
+    # read in the user-specified transforms
+    config = get_config()
+    transform_dictionary = {
+        "WS": config["data_vars"]["wind_speed"]["transform"],
+        "TEMP": config["data_vars"]["air_temperature"]["transform"],
+        "RH": config["data_vars"]["relative_humidity"]["transform"],
+        "PREC": config["data_vars"]["precipitation"]["transform"],
+    }
+
+    # Apply each transformation to the corresponding variable
+    for wx_var in transform_dictionary.keys():
+        expression = transform_dictionary[wx_var]
+        if expression is not None:
+            print(f"Applying transformation to {wx_var}: {expression}")
+            transform = eval("lambda x:" + expression) #TO-DO: replace eval with a secure alternative (e.g numexpr)
+            wx_data[wx_var] = transform(wx_data[wx_var])
+
+    return wx_data
+
+
 def stack_spatial_dims(data: xr.Dataset, x_name: str, y_name: str) -> xr.Dataset:
     """
     Stacks the two spatial dimensions (x_name and y_name) of the dataset into a single
@@ -95,19 +163,3 @@ def stack_spatial_dims(data: xr.Dataset, x_name: str, y_name: str) -> xr.Dataset
     data = data.stack(xy=[x_name, y_name])
 
     return data
-
-
-
-
-
-# # TESTING; TEMPORARY
-# from glob import glob
-# years = [2008]
-# paths = []
-# for year in years:
-#     paths += sorted(glob(f"/users/rpayne/data/unproc/WRF/ctl/TAS/*.nc"))
-# data = xr.open_mfdataset(paths).isel(rlat=slice(20,276),rlon=slice(110,366)).sel(time=slice(f"{years[0]}-01-01",f"{years[-1]}-12-31"))
-# data = rename_wx_variables(data)
-# data = rename_coordinates(data)
-# data = stack_spatial_dims(data, x_name='rlon', y_name='rlat')
-# print(data.dims)

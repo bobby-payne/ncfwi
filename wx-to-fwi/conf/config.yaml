@@ -1,6 +1,7 @@
 settings:
 
-  year: 2004
+  start_year: 2004
+  end_year: 2004
   overwinter: true
   domain_index_x: [110,366]
   domain_index_y: [20,276]
@@ -13,30 +14,49 @@ settings:
   consecutive_days: 3
   start_temp: 12
   stop_temp: 5
+  output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
 
+
+# Note: all data must be on the same grid and have the same time dimension.
 data_vars:
 
-  - name: "wind_speed"
-    alternative_names: ["wind_speed_10m", "WS10"]
-    units: "m/s"
+  wind_speed:
+
+    alternative_names: ["wind_speed_10m", "WS10", "WS"]
     description: "Wind speed at 10 meters above ground level"
     path: "/users/rpayne/data/unproc/WRF/ctl/WS10/"
+    x_dim_name: "rlon"
+    y_dim_name: "rlat"
+    t_dim_name: "time"
+    transform: null
 
-  - name: "air_temperature"
+  air_temperature:
+
     alternative_names: ["air_temp_2m", "T2", "TAS"]
-    units: "K"
     description: "Air temperature at 2 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/TAS/"
+    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/"
+    x_dim_name: "rlon"
+    y_dim_name: "rlat"
+    t_dim_name: "time"
+    transform: "x - 273.15"
 
-  - name: "relative_humidity"
+  relative_humidity:
+
     alternative_names: ["RH", "RH2", "relative_humidity_2m"]
-    units: "%"
     description: "Relative humidity at 2 meters above ground level"
     path: "/users/rpayne/data/unproc/WRF/ctl/RH/"
+    x_dim_name: "rlon"
+    y_dim_name: "rlat"
+    t_dim_name: "time"
+    transform: null
 
-  - name: "precipitation"
+  precipitation:
+
     alternative_names: ["precipitation_1h", "P1H", "total_precipitation", "PREC", "prec", "pr"]
-    units: "mm"
     description: "Total accumulated precipitation over the past hour"
-    path: "/users/rpayne/data/unproc/WRF/ctl/PREC/"
+    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/"
+    x_dim_name: "rlon"
+    y_dim_name: "rlat"
+    t_dim_name: "time"
+    transform: null
 
