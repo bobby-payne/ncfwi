@@ -8,16 +8,15 @@ settings:
   chunks: "auto"
   parallel: true
   n_cpu_cores: -1
-  FFMC_DEFAULT: 85
-  DMC_DEFAULT: 6
-  DC_DEFAULT: 15
-  consecutive_days: 3
-  start_temp: 12
-  stop_temp: 5
   output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
   path_to_Ensemble_FWI: "/users/rpayne/Ensemble_FWI"
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
-
+  FFMC_default: 85
+  DMC_default: 6
+  DC_default: 15
+  season_consecutive_days: 3
+  season_start_temp: 12
+  season_stop_temp: 5
 
 # Note: all data must be on the same grid and have the same time dimension.
 data_vars:
