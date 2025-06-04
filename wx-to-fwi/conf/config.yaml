@@ -15,6 +15,8 @@ settings:
   start_temp: 12
   stop_temp: 5
   output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
+  path_to_Ensemble_FWI: "/users/rpayne/Ensemble_FWI"
+  path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
 
 
 # Note: all data must be on the same grid and have the same time dimension.
