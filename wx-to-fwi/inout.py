@@ -33,5 +33,3 @@ def load_data() -> xarray.Dataset:
     wx_data_xarray = apply_transformations(wx_data_xarray)
     
     return wx_data_xarray
-
-print(load_data())
