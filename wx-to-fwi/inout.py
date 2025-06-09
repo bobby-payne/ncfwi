@@ -1,8 +1,8 @@
-import xarray
+import xarray as xr
 from utils import *
 
 
-def load_data() -> xarray.Dataset:
+def load_data() -> xr.Dataset:
     """
     Open each wx data separately and then merge into an xarray dataset.
 
@@ -25,11 +25,6 @@ def load_data() -> xarray.Dataset:
         wx_data[wx_var] = xr.open_mfdataset(path)
 
     # Merge into an xarray.Dataset
-    wx_data_xarray = xr.merge(wx_data.values())
+    wx_data_xarray = xr.merge(wx_data.values(), join="exact")
 
-    # Rename variables to a common format
-    wx_data_xarray = rename_coordinates(wx_data_xarray)
-    wx_data_xarray = rename_wx_variables(wx_data_xarray)
-    wx_data_xarray = apply_transformations(wx_data_xarray)
-    
     return wx_data_xarray
