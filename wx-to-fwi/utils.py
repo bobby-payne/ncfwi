@@ -130,7 +130,7 @@ def apply_spatial_indexing(wx_data: xr.Dataset) -> xr.Dataset:
     x0, x1 = config["settings"]["domain_index_x"]
     y0, y1 = config["settings"]["domain_index_y"]
 
-    wx_data_subset = wx_data.isel({x_dim: slice(y0, y1), y_dim: slice(x0, x1)})
+    wx_data_subset = wx_data.isel({x_dim: slice(x0, x1), y_dim: slice(y0, y1)})
 
     return wx_data_subset
 
