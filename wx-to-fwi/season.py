@@ -91,7 +91,7 @@ def compute_fire_season(temperature_data: xr.Dataset) -> np.ndarray:
     season_consecutive_days = config["settings"]["season_consecutive_days"]
     season_start_temperature = config["settings"]["season_start_temp"]
     season_stop_temperature = config["settings"]["season_stop_temp"]
-    t_dim_name = config["data_vars"]["air_temperature"]["t_dim_name"]
+    t_dim_name = config["data_vars"]["t_dim_name"]
 
     # compute the indices for which the daily max temperature exceeds the threshold three days in a row
     idx_above_start_temp = (temperature_data > season_start_temperature)
