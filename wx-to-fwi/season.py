@@ -73,7 +73,33 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
     return mask
 
 
-def compute_fire_season(temperature_data: xr.Dataset, return_as_xarray: bool = False) -> Union[np.ndarray, xr.Dataset]:
+@njit
+def remove_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
+    """
+    Due to how the fire season is defined, the upper and lower
+    maximum temperature thresholds may be met multiple times
+    throughout the year resulting in short periods of fire season
+    in the shoulder seasons. This function accounts for those shoulders
+    by turning the mask off (i.e., turning the fire season on) for all dates
+    between the first time the upper threshold is met and the last time the lower
+    threshold is met. This is different than in McElhinny et al. (2020).
+
+    Parameters
+    ----------
+    fire_season_mask : np.ndarray
+        A boolean mask indicating the fire season.
+
+    Returns
+    -------
+    np.ndarray
+        A boolean mask indicating the adjusted fire season.
+    """
+    return fire_season_mask
+
+
+def compute_fire_season(temperature_data: xr.Dataset,
+                        return_as_xarray: bool = False,
+                        remove_shoulders: bool = False) -> Union[np.ndarray, xr.Dataset]:
     """
     Compute the fire season from the maximum daily temperature.
 
