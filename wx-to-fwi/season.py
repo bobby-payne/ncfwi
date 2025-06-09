@@ -36,7 +36,7 @@ def get_max_daily_temperature(wx_data: xr.Dataset) -> xr.Dataset:
 @njit
 def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
                             idx_below_stop_threshold_consecutive: np.ndarray,
-                            int: season_consecutive_days):
+                            season_consecutive_days: int) -> np.ndarray:
     """
     Function that applies the indexes computed in compute_fire_season to create a mask. Wrapped with numba's njit for performance.
 
