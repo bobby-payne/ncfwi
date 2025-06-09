@@ -8,26 +8,28 @@ settings:
   chunks: "auto"
   parallel: true
   n_cpu_cores: -1
-  FFMC_DEFAULT: 85
-  DMC_DEFAULT: 6
-  DC_DEFAULT: 15
-  consecutive_days: 3
-  start_temp: 12
-  stop_temp: 5
   output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
+  path_to_Ensemble_FWI: "/users/rpayne/Ensemble_FWI"
+  path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
+  FFMC_default: 85
+  DMC_default: 6
+  DC_default: 15
+  season_consecutive_days: 3
+  season_start_temp: 12
+  season_stop_temp: 5
 
-
-# Note: all data must be on the same grid and have the same time dimension.
+# Note: all data must have identical dimensions!
 data_vars:
+
+  x_dim_name: "rlon"
+  y_dim_name: "rlat"
+  t_dim_name: "time"
 
   wind_speed:
 
     alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10']
     description: "Wind speed at 10 meters above ground level"
     path: "/users/rpayne/data/unproc/WRF/ctl/WS10/"
-    x_dim_name: "rlon"
-    y_dim_name: "rlat"
-    t_dim_name: "time"
     transform: null
 
   air_temperature:
@@ -35,9 +37,6 @@ data_vars:
     alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS']
     description: "Air temperature at 2 meters above ground level"
     path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/"
-    x_dim_name: "rlon"
-    y_dim_name: "rlat"
-    t_dim_name: "time"
     transform: "x - 273.15"
 
   relative_humidity:
@@ -45,9 +44,6 @@ data_vars:
     alternative_names: ["RH", "RH2", "relative_humidity_2m", "RH2M", "rh", "rh2"]
     description: "Relative humidity at 2 meters above ground level"
     path: "/users/rpayne/data/unproc/WRF/ctl/RH/"
-    x_dim_name: "rlon"
-    y_dim_name: "rlat"
-    t_dim_name: "time"
     transform: null
 
   precipitation:
@@ -55,8 +51,5 @@ data_vars:
     alternative_names: ["Precip", "Pr", "total_precipitation", "PREC", "prec", "pr", "rainfall", "Rainfall"]
     description: "Total accumulated precipitation over the past hour"
     path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/"
-    x_dim_name: "rlon"
-    y_dim_name: "rlat"
-    t_dim_name: "time"
     transform: null
 

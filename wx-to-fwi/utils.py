@@ -142,25 +142,3 @@ def apply_transformations(wx_data: xr.Dataset) -> xr.Dataset:
             wx_data[wx_var] = transform(wx_data[wx_var])
 
     return wx_data
-
-
-def stack_spatial_dims(data: xr.Dataset, x_name: str, y_name: str) -> xr.Dataset:
-    """
-    Stacks the two spatial dimensions (x_name and y_name) of the dataset into a single
-    coordinate variable.
-
-    Parameters
-    ----------
-    data : xr.Dataset
-        The dataset containing the spatial coordinates.
-
-    Returns
-    -------
-    xr.Dataset
-        The dataset with stacked spatial coordinates.
-    """
-
-    # Stack the latitude and longitude coordinates into a single coordinate variable
-    data = data.stack(xy=[x_name, y_name])
-
-    return data
