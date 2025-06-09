@@ -3,6 +3,7 @@ import xarray as xr
 from utils import *
 from inout import *
 from season import *
+import time
 
 
 print("Loading data...")
@@ -18,7 +19,12 @@ print("Calculating maximum daily temperature...")
 daily_max_temp_data = get_max_daily_temperature(data)
 
 print("Computing fire season... (this will take a few minutes)")
-fire_season_mask = compute_fire_season(daily_max_temp_data)
+start_time = time.time()
+fire_season_mask = compute_fire_season(daily_max_temp_data, return_as_xarray=True)
+end_time = time.time()
+print(f"compute_fire_season took {end_time - start_time:.2f} seconds")
 
-print(fire_season_mask)
-print(fire_season_mask.shape)
+fire_season_mask.to_netcdf("/users/rpayne/fire_season_mask.nc")
+print("success")
+
+# print(fire_season_mask)
