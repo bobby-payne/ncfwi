@@ -73,7 +73,49 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
     return mask
 
 
-def compute_fire_season(temperature_data: xr.Dataset, return_as_xarray: bool = False) -> Union[np.ndarray, xr.Dataset]:
+# This function can be rewritten to be faster
+# should it become a bottleneck (as of now it is not?).
+# (numba doesn't like numpy.where)
+@njit
+def remove_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
+    """
+    Due to how the fire season is defined, the upper and lower
+    maximum temperature thresholds may be met multiple times
+    throughout the year resulting in short periods of fire season
+    in the shoulder seasons. This function accounts for those shoulders
+    by turning the mask off (i.e., turning the fire season on) for all dates
+    between the first time the upper threshold is met and the last time the
+    lower threshold is met. This is different than in McElhinny et al. (2020).
+
+    Parameters
+    ----------
+    fire_season_mask : np.ndarray
+        A boolean mask indicating the fire season.
+
+    Returns
+    -------
+    np.ndarray
+        A boolean mask indicating the adjusted fire season.
+    """
+    T, H, W = fire_season_mask.shape
+    fire_season_mask_adjusted = fire_season_mask.copy()
+
+    for i in range(H):
+        for j in range(W):
+
+            fire_season_mask_ij = fire_season_mask[:, i, j]
+            active_season_indices = np.where(fire_season_mask_ij == 1)[0]
+            if len(active_season_indices) == 0:  # if no fire season
+                continue
+
+            istart, istop = active_season_indices[0], active_season_indices[-1]
+            fire_season_mask_adjusted[istart:istop, i, j] = 1
+
+    return fire_season_mask_adjusted
+
+
+def compute_fire_season(temperature_data: xr.Dataset,
+                        return_as_xarray: bool = False) -> Union[np.ndarray, xr.Dataset]:
     """
     Compute the fire season from the maximum daily temperature.
 
@@ -114,6 +156,7 @@ def compute_fire_season(temperature_data: xr.Dataset, return_as_xarray: bool = F
     fire_season_mask = apply_fire_season_logic(idx_above_start_temp_consecutive,
                                                idx_below_stop_temp_consecutive,
                                                season_consecutive_days)
+    fire_season_mask = remove_shoulder_fire_seasons(fire_season_mask)
 
     if return_as_xarray:
         fire_season_mask = xr.DataArray(fire_season_mask,
