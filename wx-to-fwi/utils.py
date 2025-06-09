@@ -108,6 +108,33 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
+def apply_spatial_indexing(wx_data: xr.Dataset) -> xr.Dataset:
+    """
+    Select a specific region by indexing the x and y dimensions
+    as given by the user in the config.
+
+    Parameters
+    ----------
+    wx_data : xarray.Dataset
+        The dataset containing the weather variables.
+
+    Returns
+    -------
+    xarray.Dataset
+        The dataset with spatial indexing applied.
+    """
+
+    config = get_config()
+    x_dim = config["data_vars"]["x_dim_name"]
+    y_dim = config["data_vars"]["y_dim_name"]
+    x0, x1 = config["settings"]["domain_index_x"]
+    y0, y1 = config["settings"]["domain_index_y"]
+
+    wx_data_subset = wx_data.isel({x_dim: slice(y0, y1), y_dim: slice(x0, x1)})
+
+    return wx_data_subset
+
+
 def apply_transformations(wx_data: xr.Dataset) -> xr.Dataset:
     """
     Transform the dataset by applying a mathematical operation to the variable.
