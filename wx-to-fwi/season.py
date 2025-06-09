@@ -1,7 +1,8 @@
-import sys
 import numpy as np
 import xarray as xr
-from numba import njit, prange
+from scipy.ndimage import uniform_filter1d
+from typing import Union
+from numba import njit
 from utils import *
 from inout import *
 
@@ -61,7 +62,7 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
         for j in range(W):
             on = False
             for t in range(T):
-                if t < season_consecutive_days: # the first N=season_consecutive_days days are always nans
+                if t < season_consecutive_days: # the first N=season_consecutive_days days are always off
                     on = False
                 else:
                     if not on and idx_above_start_threshold_consecutive[t, i, j]:
@@ -72,7 +73,7 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
     return mask
 
 
-def compute_fire_season(temperature_data: xr.Dataset) -> np.ndarray:
+def compute_fire_season(temperature_data: xr.Dataset, return_as_xarray: bool = False) -> Union[np.ndarray, xr.Dataset]:
     """
     Compute the fire season from the maximum daily temperature.
 
@@ -80,6 +81,9 @@ def compute_fire_season(temperature_data: xr.Dataset) -> np.ndarray:
     ----------
     temperature_data : xr.Dataset
         The dataset containing daily maximum temperature data.
+    return_as_xarray : bool, optional
+        If True, returns the result as an xarray Dataset with the same dimensions as temperature_data.
+        If False, returns a numpy array. Default is False.
     Returns
     -------
     xr.Dataset
@@ -91,15 +95,30 @@ def compute_fire_season(temperature_data: xr.Dataset) -> np.ndarray:
     season_consecutive_days = config["settings"]["season_consecutive_days"]
     season_start_temperature = config["settings"]["season_start_temp"]
     season_stop_temperature = config["settings"]["season_stop_temp"]
-    t_dim_name = config["data_vars"]["t_dim_name"]
 
     # compute the indices for which the daily max temperature exceeds the threshold three days in a row
     idx_above_start_temp = (temperature_data > season_start_temperature)
     idx_below_stop_temp = (temperature_data < season_stop_temperature)
-    idx_above_start_temp_consecutive = (idx_above_start_temp.rolling({t_dim_name: season_consecutive_days}).sum(skipna=False) == season_consecutive_days)
-    idx_below_stop_temp_consecutive = (idx_below_stop_temp.rolling({t_dim_name: season_consecutive_days}).sum(skipna=False) == season_consecutive_days)
-    idx_above_start_temp_consecutive = idx_above_start_temp_consecutive.values
-    idx_below_stop_temp_consecutive = idx_below_stop_temp_consecutive.values
-    fire_season_mask = apply_fire_season_logic(idx_above_start_temp_consecutive, idx_below_stop_temp_consecutive, season_consecutive_days)
+    idx_above_start_temp_consecutive = uniform_filter1d(idx_above_start_temp.data.astype("int8"),
+                                                        size=season_consecutive_days,
+                                                        axis=0,
+                                                        mode="constant",
+                                                        cval=0.,
+                                                        origin=1)
+    idx_below_stop_temp_consecutive = uniform_filter1d(idx_below_stop_temp.data.astype("int8"),
+                                                        size=season_consecutive_days,
+                                                        axis=0,
+                                                        mode="constant",
+                                                        cval=0.,
+                                                        origin=1)
+    fire_season_mask = apply_fire_season_logic(idx_above_start_temp_consecutive,
+                                               idx_below_stop_temp_consecutive,
+                                               season_consecutive_days)
 
-    return fire_season_mask
+    if return_as_xarray:
+        fire_season_mask = xr.DataArray(fire_season_mask,
+                                        coords=temperature_data.coords,
+                                        dims=temperature_data.dims,
+                                        name="fire_season_mask")
+
+    return fire_season_mask  # type: ignore
