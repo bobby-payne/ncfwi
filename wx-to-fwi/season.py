@@ -7,11 +7,6 @@ from utils import *
 from inout import *
 
 
-# index of the first hour of each month
-# month_index = np.cumsum(24*np.array([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30]))
-# month_index_leap = np.cumsum(24*np.array([0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30]))
-
-
 def get_max_daily_temperature(wx_data: xr.Dataset) -> xr.Dataset:
     """
     Simple function to calculate the maximum daily temperature from the dataset.
