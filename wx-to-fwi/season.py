@@ -72,7 +72,7 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
 # should it become a bottleneck (as of now it is not?).
 # (numba doesn't like numpy.where)
 @njit
-def remove_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
+def adjust_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
     """
     Due to how the fire season is defined, the upper and lower
     maximum temperature thresholds may be met multiple times
@@ -110,7 +110,8 @@ def remove_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
 
 
 def compute_fire_season(temperature_data: xr.Dataset,
-                        return_as_xarray: bool = False) -> Union[np.ndarray, xr.Dataset]:
+                        return_as_xarray: bool = False
+                        ) -> Union[np.ndarray, xr.Dataset]:
     """
     Compute the fire season from the maximum daily temperature.
 
@@ -119,8 +120,9 @@ def compute_fire_season(temperature_data: xr.Dataset,
     temperature_data : xr.Dataset
         The dataset containing daily maximum temperature data.
     return_as_xarray : bool, optional
-        If True, returns the result as an xarray Dataset with the same dimensions as temperature_data.
-        If False, returns a numpy array. Default is False.
+        If True, returns the result as an xarray Dataset with the same
+        dimensions as temperature_data. If False, returns a numpy array.
+        Default is False.
     Returns
     -------
     xr.Dataset
@@ -133,7 +135,8 @@ def compute_fire_season(temperature_data: xr.Dataset,
     season_start_temperature = config["FWI_parameters"]["season_start_temp"]
     season_stop_temperature = config["FWI_parameters"]["season_stop_temp"]
 
-    # compute the indices for which the daily max temperature exceeds the threshold three days in a row
+    # compute the indices for which the daily max temperature
+    # exceeds the threshold three days in a row
     idx_above_start_temp = (temperature_data > season_start_temperature)
     idx_below_stop_temp = (temperature_data < season_stop_temperature)
     idx_above_start_temp_consecutive = uniform_filter1d(
@@ -157,8 +160,10 @@ def compute_fire_season(temperature_data: xr.Dataset,
         idx_below_stop_temp_consecutive,
         season_consecutive_days
     )
-    fire_season_mask = remove_shoulder_fire_seasons(fire_season_mask)
-    fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)  # daily -> hourly
+    fire_season_mask = adjust_shoulder_fire_seasons(fire_season_mask)
+    
+    # daily -> hourly
+    fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)
 
     if return_as_xarray:
         fire_season_mask = xr.DataArray(fire_season_mask,
