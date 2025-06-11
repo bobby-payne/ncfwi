@@ -134,9 +134,9 @@ def compute_fire_season(temperature_data: xr.Dataset,
 
     # read info from config
     config = get_config()
-    season_consecutive_days = config["settings"]["season_consecutive_days"]
-    season_start_temperature = config["settings"]["season_start_temp"]
-    season_stop_temperature = config["settings"]["season_stop_temp"]
+    season_consecutive_days = config["FWI_parameters"]["season_consecutive_days"]
+    season_start_temperature = config["FWI_parameters"]["season_start_temp"]
+    season_stop_temperature = config["FWI_parameters"]["season_stop_temp"]
 
     # compute the indices for which the daily max temperature exceeds the threshold three days in a row
     idx_above_start_temp = (temperature_data > season_start_temperature)
