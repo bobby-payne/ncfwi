@@ -72,7 +72,7 @@ def apply_fire_season_logic(idx_above_start_threshold_consecutive: np.ndarray,
 # should it become a bottleneck (as of now it is not?).
 # (numba doesn't like numpy.where)
 @njit
-def adjust_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
+def adjust_for_shoulder_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
     """
     Due to how the fire season is defined, the upper and lower
     maximum temperature thresholds may be met multiple times
@@ -109,7 +109,7 @@ def adjust_shoulder_fire_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
     return fire_season_mask_adjusted
 
 
-def compute_fire_season(temperature_data: xr.Dataset,
+def compute_fire_season(wx_data: xr.Dataset,
                         return_as_xarray: bool = False
                         ) -> Union[np.ndarray, xr.Dataset]:
     """
@@ -117,8 +117,8 @@ def compute_fire_season(temperature_data: xr.Dataset,
 
     Parameters
     ----------
-    temperature_data : xr.Dataset
-        The dataset containing daily maximum temperature data.
+    wx_data : xr.Dataset
+        The dataset containing wx data, including temperature in deg C.
     return_as_xarray : bool, optional
         If True, returns the result as an xarray Dataset with the same
         dimensions as temperature_data. If False, returns a numpy array.
@@ -134,6 +134,9 @@ def compute_fire_season(temperature_data: xr.Dataset,
     season_consecutive_days = config["FWI_parameters"]["season_consecutive_days"]
     season_start_temperature = config["FWI_parameters"]["season_start_temp"]
     season_stop_temperature = config["FWI_parameters"]["season_stop_temp"]
+
+    # compute the daily max temperature
+    temperature_data = get_max_daily_temperature(wx_data)
 
     # compute the indices for which the daily max temperature
     # exceeds the threshold three days in a row
@@ -160,15 +163,15 @@ def compute_fire_season(temperature_data: xr.Dataset,
         idx_below_stop_temp_consecutive,
         season_consecutive_days
     )
-    fire_season_mask = adjust_shoulder_fire_seasons(fire_season_mask)
+    fire_season_mask = adjust_for_shoulder_seasons(fire_season_mask)
     
     # daily -> hourly
     fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)
 
     if return_as_xarray:
         fire_season_mask = xr.DataArray(fire_season_mask,
-                                        coords=temperature_data.coords,
-                                        dims=temperature_data.dims,
+                                        coords=wx_data.coords,
+                                        dims=wx_data.dims,
                                         name="fire_season_mask")
 
     return fire_season_mask  # type: ignore
