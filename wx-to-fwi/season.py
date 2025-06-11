@@ -136,22 +136,29 @@ def compute_fire_season(temperature_data: xr.Dataset,
     # compute the indices for which the daily max temperature exceeds the threshold three days in a row
     idx_above_start_temp = (temperature_data > season_start_temperature)
     idx_below_stop_temp = (temperature_data < season_stop_temperature)
-    idx_above_start_temp_consecutive = uniform_filter1d(idx_above_start_temp.data.astype("int8"),
-                                                        size=season_consecutive_days,
-                                                        axis=0,
-                                                        mode="constant",
-                                                        cval=0.,
-                                                        origin=1)
-    idx_below_stop_temp_consecutive = uniform_filter1d(idx_below_stop_temp.data.astype("int8"),
-                                                        size=season_consecutive_days,
-                                                        axis=0,
-                                                        mode="constant",
-                                                        cval=0.,
-                                                        origin=1)
-    fire_season_mask = apply_fire_season_logic(idx_above_start_temp_consecutive,
-                                               idx_below_stop_temp_consecutive,
-                                               season_consecutive_days)
+    idx_above_start_temp_consecutive = uniform_filter1d(
+        idx_above_start_temp.data.astype("int8"),
+        size=season_consecutive_days,
+        axis=0,
+        mode="constant",
+        cval=0.,
+        origin=1
+    )
+    idx_below_stop_temp_consecutive = uniform_filter1d(
+        idx_below_stop_temp.data.astype("int8"),
+        size=season_consecutive_days,
+        axis=0,
+        mode="constant",
+        cval=0.,
+        origin=1
+    )
+    fire_season_mask = apply_fire_season_logic(
+        idx_above_start_temp_consecutive,
+        idx_below_stop_temp_consecutive,
+        season_consecutive_days
+    )
     fire_season_mask = remove_shoulder_fire_seasons(fire_season_mask)
+    fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)  # daily -> hourly
 
     if return_as_xarray:
         fire_season_mask = xr.DataArray(fire_season_mask,
