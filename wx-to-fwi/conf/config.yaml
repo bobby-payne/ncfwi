@@ -9,21 +9,23 @@ settings:
   parallel: true
   n_cpu_cores: -1
   output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
-  path_to_Ensemble_FWI: "/users/rpayne/Ensemble_FWI"
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
-  FFMC_default: 85
-  DMC_default: 6
-  DC_default: 15
+
+FWI_parameters:
+
+  FFMC_default: 85.0
+  DMC_default: 6.0
+  DC_default: 15.0
   season_consecutive_days: 3
-  season_start_temp: 12
-  season_stop_temp: 5
+  season_start_temp: 12.0
+  season_stop_temp: 5.0
 
 # Note: all data must have identical dimensions!
 data_vars:
 
+  t_dim_name: "time"
   x_dim_name: "rlon"
   y_dim_name: "rlat"
-  t_dim_name: "time"
 
   wind_speed:
 
