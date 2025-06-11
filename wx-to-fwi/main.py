@@ -1,23 +1,22 @@
 import numpy as np
 import xarray as xr
 import pandas as pd
-import numba
 import time
 import gc
 from utils import *
 from inout import *
 from season import *
-numba.set_num_threads(4)
 
 # Load in the data and do a few preprocessing steps
 print("Loading data...")
 data = load_data()
 
 print("Preprocessing data...")
+data = transpose_dims(data)
 data = rename_coordinates(data)
 data = rename_wx_variables(data)
 data = apply_transformations(data)
-# data = apply_spatial_indexing(data)
+data = apply_spatial_crop(data)
 
 # Obtain the fire season mask
 print("Calculating maximum daily temperature...")
