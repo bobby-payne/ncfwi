@@ -108,7 +108,7 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
-def apply_spatial_indexing(wx_data: xr.Dataset) -> xr.Dataset:
+def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
     """
     Select a specific region by indexing the x and y dimensions
     as given by the user in the config.
@@ -127,8 +127,8 @@ def apply_spatial_indexing(wx_data: xr.Dataset) -> xr.Dataset:
     config = get_config()
     x_dim = config["data_vars"]["x_dim_name"]
     y_dim = config["data_vars"]["y_dim_name"]
-    x0, x1 = config["settings"]["domain_index_x"]
-    y0, y1 = config["settings"]["domain_index_y"]
+    x0, x1 = config["settings"]["crop_x_index"]
+    y0, y1 = config["settings"]["crop_y_index"]
 
     wx_data_subset = wx_data.isel({x_dim: slice(x0, x1), y_dim: slice(y0, y1)})
 
