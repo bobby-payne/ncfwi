@@ -33,6 +33,36 @@ def get_paths_to_data() -> dict:
     return path_dictionary
 
 
+def transpose_dims(data: xr.Dataset) -> xr.Dataset:
+    """
+    Transpose the dimensions of the dataset to match the expected format.
+    The expected format is (time, spatial) where time is the first dimension,
+    followed by the other dims in the same order they were provided in.
+
+    Parameters
+    ----------
+    data : xr.Dataset
+        The dataset containing the weather variables.
+
+    Returns
+    -------
+    xr.Dataset
+        The dataset with transposed dimensions.
+    """
+
+    # read in the user-specified dimensions
+    config = get_config()
+    t_dim_name = config["data_vars"]["t_dim_name"]
+
+    # Transpose the dataset to the expected format
+    for wx_var in data.data_vars:
+        if not data[wx_var].dims[0] == t_dim_name:
+            data = data.transpose(t_dim_name, ...)
+
+    return data
+
+
+
 def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
     """
     Renames weather variables in the dataset to an format common to all
