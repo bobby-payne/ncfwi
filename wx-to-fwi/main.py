@@ -66,6 +66,32 @@ def to_pandas_dataframe(wx_data: xr.Dataset) -> pd.DataFrame:
     return wx_dataframe
 
 
+def get_timezone_UTC_offset(lat: float, lon: float) -> float:
+    """
+    Get the timezone offset from UTC at a given latitude and longitude.
+
+    Parameters
+    ----------
+    lat : float
+        Latitude of the location in (-90.0, 90.0).
+    lon : float
+        Longitude of the location in (-180.0, 180.0).
+
+    Returns
+    -------
+    float
+        The UTC offset in hours for the timezone at the given coordinates.
+        e.g., -3.5 (for Newfoundland, Canada)
+    """
+
+    tz_str = TimezoneFinder().timezone_at(lng=lon, lat=lat)
+    if tz_str is None:
+        raise ValueError(f"Could not determine timezone for coordinates: lat={lat}, lon={lon}")
+    tz = pytz.timezone(tz_str)
+    tz_offset = tz.localize(datetime(2024, 1, 1)).utcoffset()
+    return tz_offset.total_seconds() / 3600
+
+
 if __name__ == "__main__":
 
     # Open and read config
