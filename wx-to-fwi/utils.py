@@ -1,5 +1,8 @@
 import xarray as xr
+import pytz
 import yaml
+from timezonefinder import TimezoneFinder
+from datetime import datetime
 
 
 def get_config() -> dict:
@@ -199,3 +202,29 @@ def apply_transformations(wx_data: xr.Dataset) -> xr.Dataset:
             wx_data[wx_var] = transform(wx_data[wx_var])
 
     return wx_data
+
+
+def get_timezone_UTC_offset(lat: float, lon: float) -> float:
+    """
+    Get the timezone offset from UTC at a given latitude and longitude.
+
+    Parameters
+    ----------
+    lat : float
+        Latitude of the location in (-90.0, 90.0).
+    lon : float
+        Longitude of the location in (-180.0, 180.0).
+
+    Returns
+    -------
+    float
+        The UTC offset in hours for the timezone at the given coordinates.
+        e.g., -3.5 (for Newfoundland, Canada)
+    """
+
+    tz_str = TimezoneFinder().timezone_at(lng=lon, lat=lat)
+    if tz_str is None:
+        raise ValueError(f"Could not determine timezone for coordinates: lat={lat}, lon={lon}")
+    tz = pytz.timezone(tz_str)
+    tz_offset = tz.localize(datetime(2024, 1, 1)).utcoffset()
+    return tz_offset.total_seconds() / 3600
