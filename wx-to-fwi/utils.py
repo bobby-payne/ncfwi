@@ -1,5 +1,6 @@
 import xarray as xr
 import yaml
+import conf
 from importlib.resources import files
 from datetime import datetime
 
@@ -12,7 +13,7 @@ def get_config() -> dict:
         dict: Configuration dictionary.
     """
 
-    with files("wx-to-fwi.conf").joinpath("config.yaml").open("r") as file:
+    with files(conf).joinpath("config.yaml").open("r") as file:
         config = yaml.safe_load(file)
     return config
 
@@ -162,7 +163,9 @@ def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
     x0, x1 = config["settings"]["crop_x_index"]
     y0, y1 = config["settings"]["crop_y_index"]
 
-    wx_data_subset = wx_data.isel({x_dim: slice(x0, x1), y_dim: slice(y0, y1)})
+    wx_data_subset = wx_data.isel(
+        {x_dim: slice(x0, x1 + 1), y_dim: slice(y0, y1 + 1)}
+        )
 
     return wx_data_subset
 
@@ -201,4 +204,3 @@ def apply_transformations(wx_data: xr.Dataset) -> xr.Dataset:
             wx_data[wx_var] = transform(wx_data[wx_var])
 
     return wx_data
-
