@@ -27,4 +27,9 @@ def load_data() -> xr.Dataset:
     # Merge into an xarray.Dataset
     wx_data_xarray = xr.merge(wx_data.values(), join="exact")
 
+    # Add all dimensions as coordinates, provided they aren't already one
+    for dim in wx_data_xarray.dims:
+        if dim not in wx_data_xarray.coords:
+            wx_data_xarray = wx_data_xarray.assign_coords({dim: wx_data_xarray[dim]})
+
     return wx_data_xarray

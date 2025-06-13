@@ -1,5 +1,6 @@
 import xarray as xr
 import yaml
+from importlib.resources import files
 from datetime import datetime
 
 
@@ -10,8 +11,8 @@ def get_config() -> dict:
     Returns:
         dict: Configuration dictionary.
     """
-    config_path = "./conf/config.yaml"
-    with open(config_path, "r") as file:
+
+    with files("wx-to-fwi.conf").joinpath("config.yaml").open("r") as file:
         config = yaml.safe_load(file)
     return config
 
