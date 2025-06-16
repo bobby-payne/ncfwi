@@ -169,9 +169,13 @@ def compute_fire_season(wx_data: xr.Dataset,
     fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)
 
     if return_as_xarray:
-        fire_season_mask = xr.DataArray(fire_season_mask,
-                                        coords=wx_data.coords,
-                                        dims=wx_data.dims,
-                                        name="fire_season_mask")
+        fire_season_mask_xr = xr.DataArray(
+            fire_season_mask,
+            dims=wx_data["TEMP"].dims,
+            coords=wx_data["TEMP"].coords,
+            name="fire_season_mask"
+        ).to_dataset()
+
+        return fire_season_mask_xr  # type: ignore
 
     return fire_season_mask  # type: ignore
