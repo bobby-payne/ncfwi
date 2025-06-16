@@ -20,7 +20,8 @@ FWI_parameters:
   season_start_temp: 12.0
   season_stop_temp: 5.0
 
-# Note: all data must have identical dimensions!
+# Note: all data must have identical dimensions, 
+# with both latitude and longitude as a coordinate or variable!
 data_vars:
 
   t_dim_name: "time"

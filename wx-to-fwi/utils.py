@@ -1,5 +1,8 @@
 import xarray as xr
 import yaml
+import conf
+from importlib.resources import files
+from datetime import datetime
 
 
 def get_config() -> dict:
@@ -9,8 +12,8 @@ def get_config() -> dict:
     Returns:
         dict: Configuration dictionary.
     """
-    config_path = "./conf/config.yaml"
-    with open(config_path, "r") as file:
+
+    with files(conf).joinpath("config.yaml").open("r") as file:
         config = yaml.safe_load(file)
     return config
 
@@ -60,7 +63,6 @@ def transpose_dims(data: xr.Dataset) -> xr.Dataset:
             data = data.transpose(t_dim_name, ...)
 
     return data
-
 
 
 def rename_wx_variables(data: xr.Dataset) -> xr.Dataset:
@@ -160,7 +162,9 @@ def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
     x0, x1 = config["settings"]["crop_x_index"]
     y0, y1 = config["settings"]["crop_y_index"]
 
-    wx_data_subset = wx_data.isel({x_dim: slice(x0, x1), y_dim: slice(y0, y1)})
+    wx_data_subset = wx_data.isel(
+        {x_dim: slice(x0, x1 + 1), y_dim: slice(y0, y1 + 1)}
+        )
 
     return wx_data_subset
 
