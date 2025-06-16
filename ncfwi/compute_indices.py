@@ -5,6 +5,7 @@ import xarray as xr
 import numpy as np
 import pytz
 import tqdm
+from datetime import datetime
 from timezonefinder import TimezoneFinder
 from joblib import Parallel, delayed
 from itertools import product
@@ -20,7 +21,7 @@ def load_and_preprocess_data() -> xr.Dataset:
     This function should be called near/at the start of the script.
 
     Returns:
-        data (xarray.Dataset): The preprocessed dataset ready for FWI calculation.
+        data (xarray.Dataset): The preprocessed dataset.
     """
 
     # Load in the config and data
