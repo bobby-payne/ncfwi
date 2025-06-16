@@ -1,19 +1,21 @@
 import sys
 import gc
-import time
 import pandas as pd
 import xarray as xr
 import numpy as np
 import pytz
+import tqdm
 from timezonefinder import TimezoneFinder
 from typing import Union
 from types import NoneType
+from joblib import Parallel, delayed
+from itertools import product
 from utils import *
 from inout import *
 from season import *
 
 
-def load_and_preprocess_data():
+def load_and_preprocess_data() -> xr.Dataset:
     """
     Initialize by loading the configuration and data,
     and performing some preprocessing steps.
@@ -24,11 +26,9 @@ def load_and_preprocess_data():
     """
 
     # Load in the config and data
-    print("Loading data...")
     data = load_data()
 
     # Do a few preprocessing steps
-    print("Preprocessing data...")
     data = transpose_dims(data)
     data = rename_coordinates(data)
     data = rename_wx_variables(data)
@@ -67,9 +67,7 @@ def get_timezone_UTC_offset(lat: float, lon: float) -> float:
 def xarray_to_pandas_dataframe(wx_data: xr.Dataset) -> pd.DataFrame:
     """
     Turns the wx data for a single year into a pandas DataFrame, and formats it
-    to be compatible with the cffdrs FWI code.
-    This is necessary because the cffdrs FWI code requires a pandas DataFrame in
-    a specific format.
+    to be compatible with the ng-cffdrs hFWI function.
 
     Args:
         data (xarray.Dataset): The wx data for a single year.
@@ -79,19 +77,13 @@ def xarray_to_pandas_dataframe(wx_data: xr.Dataset) -> pd.DataFrame:
         DataFrame, ready for FWI calculation.
     """
 
-    print("Converting to dataframe and reformating...")
-    start_time = time.time()
-
     wx_dataframe = wx_data.to_dataframe()
     wx_dataframe.index = pd.to_datetime(wx_dataframe.index)
     wx_dataframe['YR'] = wx_dataframe.index.year.astype('int')
     wx_dataframe["MON"] = wx_dataframe.index.month.astype('int')
     wx_dataframe["DAY"] = wx_dataframe.index.day.astype('int')
     wx_dataframe["HR"] = wx_dataframe.index.hour.astype('int')
-    wx_dataframe = wx_dataframe.reset_index().drop(columns=['time'])
-
-    end_time = time.time()
-    print(f"to dataframe took {end_time - start_time:.2f} seconds")
+    wx_dataframe = wx_dataframe.reset_index()
 
     return wx_dataframe
 
@@ -127,6 +119,14 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     y_dim_name = config["data_vars"]["y_dim_name"]
     dims_list = [t_dim_name, x_dim_name, y_dim_name]
 
+    # Reindex the hFWI dataframe in its time dimension such that
+    # there is an entry for every hour of the year (fill_val=nan).
+    hFWI_dataframe = hFWI_dataframe.set_index('timestamp')
+    year = hFWI_dataframe.index[0].year
+    full_index = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
+    hFWI_dataframe = hFWI_dataframe.reindex(full_index)
+
+    # Convert the pandas dataframe to an xarray Dataset
     hFWI_dataset = xr.Dataset(
         {
             'FWI': (dims_list, hFWI_dataframe['fwi'].to_numpy().reshape(-1, 1, 1)),
@@ -135,10 +135,11 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
             'FFMC': (dims_list, hFWI_dataframe['ffmc'].to_numpy().reshape(-1, 1, 1)),
             'DMC': (dims_list, hFWI_dataframe['dmc'].to_numpy().reshape(-1, 1, 1)),
             'DC': (dims_list, hFWI_dataframe['dc'].to_numpy().reshape(-1, 1, 1)),
+            'temp': (dims_list, hFWI_dataframe['temp'].to_numpy().reshape(-1, 1, 1)),
         },
         coords=dataset_coords
     )
-    
+
     if not isinstance(season_mask, NoneType):
         season_mask_dataset = xr.Dataset(
             {
@@ -151,18 +152,18 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     return hFWI_dataset
 
 
-def compute_FWIs_for_grid_point(wx_data: xr.Dataset,
-                                x_index: int,
-                                y_index: int,
+def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
+                                loc_index: tuple[int, int],
                                 year: int) -> xr.Dataset:
     """
     Compute the Fire Weather Index (FWI) for a specific grid point
     in the wx data for a given year.
 
     Args:
-        wx_data (xr.Dataset): The weather data for the entire region.
-        x_index (int): The x index of the grid point.
-        y_index (int): The y index of the grid point.
+        wx_data (xr.Dataset): 1-year timeseries of weather data for the
+            whole domain.
+        loc_index (tuple[int,int]): The x and y index of the grid point,
+            in that order, i.e., (x_index, y_index).
         year (int): The year for which to compute the FWI.
     Returns:
         xr.Dataset: The FWI data for the specified grid point and year
@@ -177,18 +178,12 @@ def compute_FWIs_for_grid_point(wx_data: xr.Dataset,
     DMC_DEFAULT = config["FWI_parameters"]["DMC_default"]
     DC_DEFAULT = config["FWI_parameters"]["DC_default"]
 
-    # Load data for the current year into memory
-    print(f"Loading data for year {year} into memory...")
-    print("(This may take a while!)")
-    wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-
     # Obtain the fire season mask for this year
-    print(f"Computing fire season for {year}...")
-    fire_season_mask_i = compute_fire_season(wx_data_i, return_as_xarray=False)
+    fire_season_mask_i = compute_fire_season(wx_data_i, return_as_xarray=True)
 
     # Select the data for the given grid point
     # then convert to the pandas DataFrame needed for hFWI
-    x, y = x_index, y_index
+    x, y = loc_index
     wx_dataframe_ixy = xarray_to_pandas_dataframe(
         wx_data_i.sel({x_dim_name: x, y_dim_name: y})
     )
@@ -199,12 +194,13 @@ def compute_FWIs_for_grid_point(wx_data: xr.Dataset,
     UTC_offset = get_timezone_UTC_offset(lat, lon)
 
     # Apply the fire season mask to the data at this grid point
-    fire_season_mask_ixy = fire_season_mask_i[:, x, y]
+    fire_season_mask_ixy = fire_season_mask_i.sel(
+        {x_dim_name: x, y_dim_name: y}
+    )['fire_season_mask'].values
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
 
     # If fire season is active for at least one time step, calculate the FWIs
     # else, return a DataFrame of numpy NaNs
-    start_time = time.time()
     if any(fire_season_mask_ixy):
         FWI_dataframe_ixy = hFWI(
             wx_dataframe_masked_ixy,
@@ -221,16 +217,15 @@ def compute_FWIs_for_grid_point(wx_data: xr.Dataset,
             'ffmc': [np.nan] * len(fire_season_mask_ixy),
             'dmc': [np.nan] * len(fire_season_mask_ixy),
             'dc': [np.nan] * len(fire_season_mask_ixy),
+            'temp': [np.nan] * len(fire_season_mask_ixy),
         })
-    end_time = time.time()
-    print(f"FWI calculation for ({x}, {y}) took {end_time - start_time:.2f}s")
+    # print(f"FWI calculation for ({x}, {y}) took {end_time - start_time:.2f}s")
 
     # Convert the output pandas dataframe into an xarray Dataset
     # IMPORTANT: The provided time coordinate in dataset_coords must line up
     # with the data that have been MASKED, not for the entire year.
-    print("wx_dataframe_masked_ixy.index:", wx_dataframe_masked_ixy.index)
     dataset_coords = {
-            t_dim_name: wx_dataframe_masked_ixy.index,
+            t_dim_name: wx_dataframe_ixy[t_dim_name].values,  # array of datetimes
             x_dim_name: [x],
             y_dim_name: [y],
             'lat': ([y_dim_name, x_dim_name], np.array([[lat]])),
@@ -256,8 +251,11 @@ if __name__ == "__main__":
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
+    parallel = config["settings"]["parallel"]
+    n_cores = config["settings"]["n_cpu_cores"]
     time_range = np.arange(start_year, end_year + 1)
-    sys.path.append(path_to_cffdrs_ng)
+    if path_to_cffdrs_ng not in sys.path:
+        sys.path.append(path_to_cffdrs_ng)
     from NG_FWI import hFWI
 
     # Initialize data
@@ -267,10 +265,34 @@ if __name__ == "__main__":
     # Main computation loop
     for year in time_range:
 
-        # TODO: Parallelize
-        for x in wx_data[x_dim_name].values:
-            for y in wx_data[y_dim_name].values:
-                print(compute_FWIs_for_grid_point(wx_data, x, y, year))
+        # Load data for the current year into memory
+        print(f"Loading data for year {year} into memory...")
+        print("(This may take a while!)")
+        wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+
+        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+
+        if parallel:  # Compute the FWIs at each grid point in parallel
+
+            coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
+                                             wx_data_i[y_dim_name].values))
+            FWIs_list = Parallel(n_jobs=n_cores)(
+                delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
+                for loc_index in tqdm.tqdm(coordinate_tuples)
+            )
+
+        else:  # Compute the FWIs at grid point by grid point in series
+
+            FWIs_list = []
+            for x in wx_data_i[x_dim_name].values:
+                for y in wx_data_i[y_dim_name].values:
+
+                    print(f"Computing FWI for (x={x}, y={y})...")
+                    FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
+                    FWIs_list.append(FWIs_at_xy)
+
+        FWIs_dataset = xr.merge(FWIs_list, join='outer')
+        print(FWIs_dataset)
 
     gc.collect()
 
