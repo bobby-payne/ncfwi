@@ -117,6 +117,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
+    output_vars = config["settings"]["output_vars"]
     dims_list = [t_dim_name, x_dim_name, y_dim_name]
 
     # Reindex the hFWI dataframe in its time dimension such that
@@ -126,21 +127,23 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     full_index = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
     hFWI_dataframe = hFWI_dataframe.reindex(full_index)
 
-    # Convert the pandas dataframe to an xarray Dataset
+    # Select the desired output variables and
+    # convert the pandas dataframe to an xarray Dataset
+    # Note that mask is handled separately (see below)
+    output_vars_no_mask = [var for var in output_vars if var.lower() != 'season_mask']
     hFWI_dataset = xr.Dataset(
         {
-            'FWI': (dims_list, hFWI_dataframe['fwi'].to_numpy().reshape(-1, 1, 1)),
-            'BUI': (dims_list, hFWI_dataframe['bui'].to_numpy().reshape(-1, 1, 1)),
-            'ISI': (dims_list, hFWI_dataframe['isi'].to_numpy().reshape(-1, 1, 1)),
-            'FFMC': (dims_list, hFWI_dataframe['ffmc'].to_numpy().reshape(-1, 1, 1)),
-            'DMC': (dims_list, hFWI_dataframe['dmc'].to_numpy().reshape(-1, 1, 1)),
-            'DC': (dims_list, hFWI_dataframe['dc'].to_numpy().reshape(-1, 1, 1)),
-            'temp': (dims_list, hFWI_dataframe['temp'].to_numpy().reshape(-1, 1, 1)),
+            var: (
+                dims_list,
+                hFWI_dataframe[var.lower()].to_numpy().reshape(-1, 1, 1)
+            )
+            for var in output_vars_no_mask
         },
         coords=dataset_coords
     )
 
-    if not isinstance(season_mask, NoneType):
+    # The season_mask variable is handled differently
+    if 'season_mask' in output_vars:
         season_mask_dataset = xr.Dataset(
             {
                 'MASK': (dims_list, season_mask.reshape(-1, 1, 1)),
@@ -174,9 +177,9 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
-    FFMC_DEFAULT = config["FWI_parameters"]["FFMC_default"]
-    DMC_DEFAULT = config["FWI_parameters"]["DMC_default"]
-    DC_DEFAULT = config["FWI_parameters"]["DC_default"]
+    FFMC_DEFAULT = config["calculation_parameters"]["FFMC_default"]
+    DMC_DEFAULT = config["calculation_parameters"]["DMC_default"]
+    DC_DEFAULT = config["calculation_parameters"]["DC_default"]
 
     # Obtain the fire season mask for this year
     fire_season_mask_i = compute_fire_season(wx_data_i, return_as_xarray=True)
@@ -268,9 +271,9 @@ if __name__ == "__main__":
         # Load data for the current year into memory
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
-        wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        # wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
 
-        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+        wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 

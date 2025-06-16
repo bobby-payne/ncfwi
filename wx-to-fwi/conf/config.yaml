@@ -2,14 +2,14 @@ settings:
 
   start_year: 2004
   end_year: 2004
-  overwinter: true
   crop_x_index: [110,366]
   crop_y_index: [20,276]
   chunks: "auto"
   parallel: true
   n_cpu_cores: -1
-  output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
+  output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
+  output_vars: ["season_mask", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
 
 calculation_parameters:
 

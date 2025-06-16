@@ -131,9 +131,9 @@ def compute_fire_season(wx_data: xr.Dataset,
 
     # read info from config
     config = get_config()
-    season_consecutive_days = config["FWI_parameters"]["season_consecutive_days"]
-    season_start_temperature = config["FWI_parameters"]["season_start_temp"]
-    season_stop_temperature = config["FWI_parameters"]["season_stop_temp"]
+    season_consecutive_days = config["calculation_parameters"]["season_consecutive_days"]
+    season_start_temperature = config["calculation_parameters"]["season_start_temp"]
+    season_stop_temperature = config["calculation_parameters"]["season_stop_temp"]
 
     # compute the daily max temperature
     temperature_data = get_max_daily_temperature(wx_data)
