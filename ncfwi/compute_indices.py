@@ -10,8 +10,8 @@ from typing import Union
 from types import NoneType
 from joblib import Parallel, delayed
 from itertools import product
-from utils import *
-from inout import *
+from formatting import *
+from readwrite import *
 from season import *
 
 
