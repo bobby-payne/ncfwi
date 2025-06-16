@@ -11,7 +11,7 @@ settings:
   output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
 
-FWI_parameters:
+calculation_parameters:
 
   FFMC_default: 85.0
   DMC_default: 6.0
