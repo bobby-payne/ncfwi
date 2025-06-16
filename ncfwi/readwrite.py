@@ -21,7 +21,7 @@ def load_data() -> xr.Dataset:
     wx_data = {}
     for wx_var in wx_var_names:
         print("Opening data:", wx_var)
-        path = wx_data_paths[wx_var] + f"2004*.nc"
+        path = wx_data_paths[wx_var]
         wx_data[wx_var] = xr.open_mfdataset(path)
 
     # Merge into an xarray.Dataset

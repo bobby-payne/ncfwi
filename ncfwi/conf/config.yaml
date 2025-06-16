@@ -20,8 +20,8 @@ calculation_parameters:
   season_start_temp: 12.0
   season_stop_temp: 5.0
 
-# Note: all data must have identical dimensions, 
-# with both latitude and longitude as a coordinate or variable!
+# Note: all data must have identical dimensions, as well as have
+# both latitude and longitude as a data variable!
 data_vars:
 
   t_dim_name: "time"
@@ -32,27 +32,27 @@ data_vars:
 
     alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10']
     description: "Wind speed at 10 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/WS10/"
+    path: "/users/rpayne/data/unproc/WRF/ctl/WS10/*.nc"
     transform: null
 
   air_temperature:
 
     alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS']
     description: "Air temperature at 2 meters above ground level"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/"
+    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/*.nc"
     transform: "x - 273.15"
 
   relative_humidity:
 
     alternative_names: ["RH", "RH2", "relative_humidity_2m", "RH2M", "rh", "rh2"]
     description: "Relative humidity at 2 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/RH/"
+    path: "/users/rpayne/data/unproc/WRF/ctl/RH/*.nc"
     transform: null
 
   precipitation:
 
     alternative_names: ["Precip", "Pr", "total_precipitation", "PREC", "prec", "pr", "rainfall", "Rainfall"]
     description: "Total accumulated precipitation over the past hour"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/"
+    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/*.nc"
     transform: null
 
