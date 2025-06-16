@@ -34,7 +34,6 @@ def load_and_preprocess_data() -> xr.Dataset:
     data = rename_coordinates(data)
     data = rename_wx_variables(data)
     data = apply_transformations(data)
-    data = apply_time_crop(data)
     data = apply_spatial_crop(data)
 
     return data
@@ -182,9 +181,9 @@ if __name__ == "__main__":
         # Load data for the current year into memory
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
-        wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        # wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
 
-        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+        wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
