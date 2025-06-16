@@ -1,24 +1,10 @@
 import xarray as xr
 import pandas as pd
 import numpy as np
-import yaml
-import conf
-from importlib.resources import files
 from typing import Union
 from types import NoneType
 
-
-def get_config() -> dict:
-    """
-    Load configuration from a YAML file.
-    
-    Returns:
-        dict: Configuration dictionary.
-    """
-
-    with files(conf).joinpath("config.yaml").open("r") as file:
-        config = yaml.safe_load(file)
-    return config
+from config import get_config
 
 
 def get_paths_to_data() -> dict:

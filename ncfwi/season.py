@@ -3,11 +3,13 @@ import xarray as xr
 from scipy.ndimage import uniform_filter1d
 from typing import Union
 from numba import njit
+
 from formatting import *
 from readwrite import *
+from config import get_config
 
 
-def get_max_daily_temperature(wx_data: xr.Dataset) -> xr.Dataset:
+def get_max_daily_temperature(wx_data: xr.Dataset) -> xr.DataArray:
     """
     Simple function to calculate the maximum daily temperature from the dataset.
     The function assumes that the dataset has a time dimension with hourly data

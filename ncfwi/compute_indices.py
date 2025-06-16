@@ -9,9 +9,11 @@ from datetime import datetime
 from timezonefinder import TimezoneFinder
 from joblib import Parallel, delayed
 from itertools import product
+
 from formatting import *
 from readwrite import *
 from season import *
+from config import get_config
 
 
 def load_and_preprocess_data() -> xr.Dataset:
@@ -32,6 +34,7 @@ def load_and_preprocess_data() -> xr.Dataset:
     data = rename_coordinates(data)
     data = rename_wx_variables(data)
     data = apply_transformations(data)
+    data = apply_time_crop(data)
     data = apply_spatial_crop(data)
 
     return data
