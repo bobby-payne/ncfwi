@@ -3,8 +3,10 @@ import xarray as xr
 from scipy.ndimage import uniform_filter1d
 from typing import Union
 from numba import njit
+
 from formatting import *
 from readwrite import *
+from config import get_config
 
 
 def get_max_daily_temperature(wx_data: xr.Dataset) -> xr.Dataset:
