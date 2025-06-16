@@ -1,6 +1,6 @@
 # ncfwi
 ---
-This is an **unofficial** Python package that ingests hourly gridded netcdf weather data (temperature, wind speed, relative humidity, and precipitation) to calculate and produce hourly gridded Fire Weather Indices (FWIs).
+This is a Python package that ingests hourly gridded netcdf weather data (temperature, wind speed, relative humidity, and precipitation) to calculate and produce hourly gridded Fire Weather Indices (FWIs). Note that this package is **unofficial** and is not endorsed by NRCAN/RNCAN—it is purely for the purposes of my own research.
 
 ---
 
