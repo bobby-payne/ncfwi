@@ -1,8 +1,25 @@
 import xarray as xr
 import os
 
-from formatting import *
 from config import get_config
+
+
+def get_paths_to_wx_data() -> dict:
+    """
+    Get paths to data from the configuration file.
+    
+    Returns:
+        dict: Dictionary containing data paths.
+    """
+    config = get_config()
+    path_dictionary = {
+        "wind_speed": config["data_vars"]["wind_speed"]["path"],
+        "air_temperature": config["data_vars"]["air_temperature"]["path"],
+        "relative_humidity": config["data_vars"]["relative_humidity"]["path"],
+        "precipitation": config["data_vars"]["precipitation"]["path"],
+    }
+
+    return path_dictionary
 
 
 def load_data() -> xr.Dataset:
@@ -18,7 +35,7 @@ def load_data() -> xr.Dataset:
     """
 
     # Get paths (as strings) to data
-    wx_data_paths = get_paths_to_data()
+    wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
     # Open the data and temporarily store in a dictionary

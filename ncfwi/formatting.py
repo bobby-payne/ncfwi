@@ -7,24 +7,6 @@ from types import NoneType
 from config import get_config
 
 
-def get_paths_to_data() -> dict:
-    """
-    Get paths to data from the configuration file.
-    
-    Returns:
-        dict: Dictionary containing data paths.
-    """
-    config = get_config()
-    path_dictionary = {
-        "wind_speed": config["data_vars"]["wind_speed"]["path"],
-        "air_temperature": config["data_vars"]["air_temperature"]["path"],
-        "relative_humidity": config["data_vars"]["relative_humidity"]["path"],
-        "precipitation": config["data_vars"]["precipitation"]["path"],
-    }
-
-    return path_dictionary
-
-
 def transpose_dims(data: xr.Dataset) -> xr.Dataset:
     """
     Transpose the dimensions of the dataset to match the expected format.
