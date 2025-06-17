@@ -1,10 +1,31 @@
 import xarray as xr
-from formatting import *
+import os
+
+from config import get_config
+
+
+def get_paths_to_wx_data() -> dict:
+    """
+    Get paths to data from the configuration file.
+    
+    Returns:
+        dict: Dictionary containing data paths.
+    """
+    config = get_config()
+    path_dictionary = {
+        "wind_speed": config["data_vars"]["wind_speed"]["path"],
+        "air_temperature": config["data_vars"]["air_temperature"]["path"],
+        "relative_humidity": config["data_vars"]["relative_humidity"]["path"],
+        "precipitation": config["data_vars"]["precipitation"]["path"],
+    }
+
+    return path_dictionary
 
 
 def load_data() -> xr.Dataset:
     """
-    Open each wx data separately and then merge into an xarray dataset.
+    Open each wx data (assumed netcdf) separately and then
+    merge them into a single xarray dataset.
 
     Returns
     -------
@@ -14,7 +35,7 @@ def load_data() -> xr.Dataset:
     """
 
     # Get paths (as strings) to data
-    wx_data_paths = get_paths_to_data()
+    wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
     # Open the data and temporarily store in a dictionary
@@ -33,3 +54,28 @@ def load_data() -> xr.Dataset:
             wx_data_xarray = wx_data_xarray.assign_coords({dim: wx_data_xarray[dim]})
 
     return wx_data_xarray
+
+
+def save_data(dataset: xr.Dataset, filename: str) -> None:
+    """
+    Saves an xarray dataset to a netCDF file at the location
+    specified by the user in the config file.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        The dataset to save.
+    filename : str
+        The name of the file to save the dataset as (WITHOUT path).
+        The full path will be constructed using the output directory
+        specified in the config file.
+
+    """
+
+    # Get the path to save the data
+    config = get_config()
+    path_out = config["settings"]["output_dir"]
+
+    # Save the dataset to a netCDF file
+    full_path = os.path.join(path_out, filename)
+    dataset.to_netcdf(full_path)

@@ -156,7 +156,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 if __name__ == "__main__":
 
     # Open and read config
-    print("Initializing...")
+    print("Getting ready...")
     config = get_config()
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
@@ -182,7 +182,6 @@ if __name__ == "__main__":
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
         wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-
         # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
@@ -205,7 +204,6 @@ if __name__ == "__main__":
                     FWIs_list.append(FWIs_at_xy)
 
         FWIs_dataset = xr.merge(FWIs_list, join='outer')
-        print(FWIs_dataset)
+        save_data(FWIs_dataset, f"fwi_{year}.nc")
 
     gc.collect()
-
