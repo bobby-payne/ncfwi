@@ -92,15 +92,17 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     DMC_DEFAULT = config["calculation_parameters"]["DMC_default"]
     DC_DEFAULT = config["calculation_parameters"]["DC_default"]
 
-    # Obtain the fire season mask for this year
-    fire_season_mask_i = compute_fire_season(wx_data_i, return_as_xarray=True)
-
     # Select the data for the given grid point
-    # then convert to the pandas DataFrame needed for hFWI
     x, y = loc_index
-    wx_dataframe_ixy = xarray_to_pandas_dataframe(
-        wx_data_i.sel({x_dim_name: x, y_dim_name: y})
-    )
+    wx_data_ixy = wx_data_i.sel({x_dim_name: [x], y_dim_name: [y]})
+    
+    # Obtain the fire season mask for this year in the form of an np array
+    fire_season_mask_ixy = compute_fire_season(
+        wx_data_ixy, return_as_xarray=True
+    )['fire_season_mask'].values
+
+    # convert the wx data to the pandas DataFrame needed for hFWI fn.
+    wx_dataframe_ixy = xarray_to_pandas_dataframe(wx_data_ixy.squeeze())
 
     # Get the UTC offset for the current grid point
     lon = wx_dataframe_ixy["long"].values[0]
@@ -108,9 +110,6 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     UTC_offset = get_timezone_UTC_offset(lat, lon)
 
     # Apply the fire season mask to the data at this grid point
-    fire_season_mask_ixy = fire_season_mask_i.sel(
-        {x_dim_name: x, y_dim_name: y}
-    )['fire_season_mask'].values
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
 
     # If fire season is active for at least one time step, calculate the FWIs
@@ -133,7 +132,6 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             'dc': [np.nan] * len(fire_season_mask_ixy),
             'temp': [np.nan] * len(fire_season_mask_ixy),
         })
-    # print(f"FWI calculation for ({x}, {y}) took {end_time - start_time:.2f}s")
 
     # Convert the output pandas dataframe into an xarray Dataset
     # IMPORTANT: The provided time coordinate in dataset_coords must line up
@@ -184,8 +182,8 @@ if __name__ == "__main__":
         # Load data for the current year into memory
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
-        wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+        # wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 

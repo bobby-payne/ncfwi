@@ -8,7 +8,7 @@ settings:
   parallel: true
   n_cpu_cores: -1
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
-  output_dir: "/users/rpayne/data/unproc/WRF/ctl/FWI/"
+  output_dir: "/users/rpayne/"
   output_vars: ["season_mask", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
 
 calculation_parameters:
