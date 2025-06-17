@@ -5,6 +5,7 @@ import xarray as xr
 import numpy as np
 import pytz
 import tqdm
+import time
 from datetime import datetime
 from timezonefinder import TimezoneFinder
 from joblib import Parallel, delayed
@@ -155,6 +156,8 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
 if __name__ == "__main__":
 
+    start_time = time.time()
+
     # Open and read config
     print("Getting ready...")
     config = get_config()
@@ -207,3 +210,6 @@ if __name__ == "__main__":
         save_to_netcdf(FWIs_dataset, f"fwi_{year}.nc")
 
     gc.collect()
+    end_time = time.time()
+    n_minutes, n_seconds = divmod(end_time - start_time, 60)
+    print(f"Finished in {int(n_minutes)} minutes and {n_seconds:.2f} seconds.")
