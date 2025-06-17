@@ -4,8 +4,6 @@ rh
 ws
 prec
 percent_cured
-date
-timestamp
 timezone
 solrad
 sunrise
