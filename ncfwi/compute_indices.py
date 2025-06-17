@@ -27,7 +27,7 @@ def load_and_preprocess_data() -> xr.Dataset:
     """
 
     # Load in the config and data
-    data = load_data()
+    data = load_wx_data()
 
     # Do a few preprocessing steps
     data = transpose_dims(data)
@@ -204,6 +204,6 @@ if __name__ == "__main__":
                     FWIs_list.append(FWIs_at_xy)
 
         FWIs_dataset = xr.merge(FWIs_list, join='outer')
-        save_data(FWIs_dataset, f"fwi_{year}.nc")
+        save_to_netcdf(FWIs_dataset, f"fwi_{year}.nc")
 
     gc.collect()

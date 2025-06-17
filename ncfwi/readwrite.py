@@ -22,7 +22,7 @@ def get_paths_to_wx_data() -> dict:
     return path_dictionary
 
 
-def load_data() -> xr.Dataset:
+def load_wx_data() -> xr.Dataset:
     """
     Open each wx data (assumed netcdf) separately and then
     merge them into a single xarray dataset.
@@ -56,7 +56,7 @@ def load_data() -> xr.Dataset:
     return wx_data_xarray
 
 
-def save_data(dataset: xr.Dataset, filename: str) -> None:
+def save_to_netcdf(dataset: xr.Dataset, filename: str) -> None:
     """
     Saves an xarray dataset to a netCDF file at the location
     specified by the user in the config file.
