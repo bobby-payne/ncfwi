@@ -123,15 +123,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             dc_old=DC_DEFAULT,
             )
     else:
-        FWI_dataframe_ixy = pd.DataFrame({
-            'fwi': [np.nan] * len(fire_season_mask_ixy),
-            'bui': [np.nan] * len(fire_season_mask_ixy),
-            'isi': [np.nan] * len(fire_season_mask_ixy),
-            'ffmc': [np.nan] * len(fire_season_mask_ixy),
-            'dmc': [np.nan] * len(fire_season_mask_ixy),
-            'dc': [np.nan] * len(fire_season_mask_ixy),
-            'temp': [np.nan] * len(fire_season_mask_ixy),
-        })
+        FWI_dataframe_ixy = get_empty_hFWI_dataframe(year, lat, lon, UTC_offset)
 
     # Convert the output pandas dataframe into an xarray Dataset
     # IMPORTANT: The provided time coordinate in dataset_coords must line up
@@ -182,8 +174,8 @@ if __name__ == "__main__":
         # Load data for the current year into memory
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
-        # wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-        wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+        wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
