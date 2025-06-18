@@ -196,7 +196,7 @@ if __name__ == "__main__":
                     FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
                     FWIs_list.append(FWIs_at_xy)
 
-        FWIs_dataset = xr.merge(FWIs_list, join='outer')
+        FWIs_dataset = xr.combine_by_coords(FWIs_list, join='outer')
         save_to_netcdf(FWIs_dataset, f"fwi_{year}.nc")
 
     gc.collect()
