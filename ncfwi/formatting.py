@@ -273,3 +273,70 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
         hFWI_dataset = xr.merge([season_mask_dataset, hFWI_dataset,], join='outer')
 
     return hFWI_dataset
+
+
+def get_empty_hFWI_dataframe(year: int, lat: float, lon: float, utc_offset: float) -> pd.DataFrame:
+    """
+    Creates a (mostly) empty pandas DataFrame with the correct columns for the
+    hFWI output, but no data. This is useful for initializing the output
+    DataFrame when no fire season exists at a point.
+
+    Args:
+        year (int): The year for which to create the empty DataFrame.
+        lat (float): The latitude of the point.
+        lon (float): The longitude of the point.
+        utc_offset (float): The UTC offset for the point.
+
+    Returns:
+        pd.DataFrame: An empty DataFrame with the correct columns.
+    """
+
+    colnames_out = [
+        "lat",
+        "long",
+        "yr",
+        "mon",
+        "day",
+        "hr",
+        "temp",
+        "rh",
+        "ws",
+        "prec",
+        "date",
+        "timestamp",
+        "timezone",
+        "solrad",
+        "sunrise",
+        "sunset",
+        "sunlight_hours",
+        "ffmc",
+        "dmc",
+        "dc",
+        "isi",
+        "bui",
+        "fwi",
+        "dsr",
+        "gfmc",
+        "gsi",
+        "gfwi",
+        "mcffmc",
+        "mcgfmc",
+        "percent_cured",
+        "grass_fuel_load",
+    ]
+
+    # Create an empty DataFrame with the specified columns
+    empty_df = pd.DataFrame(columns=colnames_out)
+
+    # Add a timestamp column for the entire year
+    empty_df['timestamp'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
+    empty_df['date'] = empty_df['timestamp'].dt.date
+    empty_df['yr'] = empty_df['timestamp'].dt.year
+    empty_df['mon'] = empty_df['timestamp'].dt.month
+    empty_df['day'] = empty_df['timestamp'].dt.day
+    empty_df['hr'] = empty_df['timestamp'].dt.hour
+    empty_df['lat'] = lat
+    empty_df['long'] = lon
+    empty_df['timezone'] = utc_offset
+
+    return empty_df
