@@ -17,15 +17,20 @@ git clone https://github.com/nrcan-cfs-fire/cffdrs-ng.git
 ```
 
 ## Usage
-Edit `conf/config.yaml` with the relevant information for computing the FWIs from your netcdf data. Then simply run `compute_indices.py` with your python interpreter. The FWIs will be saved in your specified output directory like so.
+Edit `conf/config.yaml` with the relevant information for computing the FWIs from your netcdf data. Then simply run `compute_indices.py` with your python interpreter. The FWIs will be saved in your specified output directory organized as follows
 ```
 your_output_directory/
-├── FWI_2004.nc        
-├── FWI_2005.nc    
-├── FWI_2006.nc       
-└── FWI_2007.nc    
+├── FWI/
+|    ├── 2001.nc
+|    └── 2002.nc 
+├── ISI/
+|    ├── 2001.nc
+|    └── 2002.nc     
+└── BUI/
+     ├── 2001.nc
+     └── 2002.nc     
 ```
-You can specify which indices and/or weather variables you would like returned in the output, including the fire season mask. A full list of suitable output variables are listed in `available_outputs.txt`.
+You can specify which indices and/or weather variables you would like returned in the output, including the fire season mask, and the years over which they are computed. A full list of suitable output variables are listed in `available_outputs.txt`.
 
 ### Overwintering: Coming Soon!
 
