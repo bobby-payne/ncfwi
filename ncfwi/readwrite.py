@@ -103,7 +103,7 @@ def load_wx_data() -> xr.Dataset:
     return wx_data_xarray
 
 
-def save_to_netcdf(dataset: xr.Dataset, filename: str) -> None:
+def save_to_netcdf(dataset: xr.Dataset) -> None:
     """
     Saves an xarray dataset to a netCDF file at the location
     specified by the user in the config file.
@@ -116,13 +116,23 @@ def save_to_netcdf(dataset: xr.Dataset, filename: str) -> None:
         The name of the file to save the dataset as (WITHOUT path).
         The full path will be constructed using the output directory
         specified in the config file.
-
     """
 
     # Get the path to save the data
     config = get_config()
     path_out = config["settings"]["output_dir"]
+    t_dim_name = config["data_vars"]["t_dim_name"]
 
-    # Save the dataset to a netCDF file
-    full_path = os.path.join(path_out, filename)
-    dataset.to_netcdf(full_path)
+    # Save each variable in its own folder
+    for var_name in dataset.data_vars:
+
+        # Create the output directory for the variable if it doesn't exist
+        output_dir = os.path.join(path_out, str(var_name))
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Select data corresponding to variable to be saved
+        var_data = dataset[var_name]
+        year = var_data[t_dim_name].dt.year.values[0]
+
+        # Save
+        var_data.to_netcdf(os.path.join(output_dir, f"{year}.nc"))

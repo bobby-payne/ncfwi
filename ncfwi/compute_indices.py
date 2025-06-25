@@ -196,10 +196,12 @@ if __name__ == "__main__":
                     FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
                     FWIs_list.append(FWIs_at_xy)
 
+        print(f"Combining FWI data for year {year}...")
         FWIs_dataset = xr.combine_by_coords(FWIs_list, join='outer')
-        save_to_netcdf(FWIs_dataset, f"fwi_{year}.nc")
-
-    gc.collect()
+        print(f"Saving FWI data for year {year}...")
+        save_to_netcdf(FWIs_dataset)
+        gc.collect()
+    
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)
     print(f"Finished in {int(n_minutes)} minutes and {n_seconds:.2f} seconds.")
