@@ -181,3 +181,45 @@ def compute_fire_season(wx_data: xr.Dataset,
         return fire_season_mask_xr  # type: ignore
 
     return fire_season_mask  # type: ignore
+
+
+def get_post_fireseason_prec_accum(
+        dataset: xr.Dataset,
+        ) -> xr.DataArray:
+    """
+    Get the accumulated precipitation from after the fire season ends to
+    the end of the given year.
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        A dataset containing an hourly PREC variable and a MASK variable.
+        First dim must be time, followed by the spatial dims.
+
+    Returns
+    -------
+    xr.DataArray
+        A DataArray containing the accumulated precipitation after the fire season,
+        with dims matching the input dataset's spatial dimensions.
+        The time dimension is removed, as it is not relevant for the accumulation.
+    """
+
+    # Get the precipitation data
+    hourly_precipitation_array = dataset["PREC"].values
+    season_mask_array = dataset["MASK"].values
+
+    # The index of the first time step after the fire season ends
+    transition_index = np.where(np.diff(season_mask_array))[0][-1] + 1
+
+    # Get the precipitation data after the fire season ends
+    winter_prec_accum_array = sum(hourly_precipitation_array[transition_index:])
+
+    # Create a DataArray with the accumulated precipitation
+    winter_prec_accum_dataArray = xr.DataArray(
+        winter_prec_accum_array,
+        dims=dataset["PREC"].dims[1:],  # Exclude the time dimension
+        coords=dataset["PREC"].coords[1:],  # Exclude the time dimension
+        name="winter_prec_accum"
+    )
+
+    return winter_prec_accum_dataArray
