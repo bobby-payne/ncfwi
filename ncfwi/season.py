@@ -183,16 +183,19 @@ def compute_fire_season(wx_data: xr.Dataset,
     return fire_season_mask  # type: ignore
 
 
-def get_post_fireseason_prec_accum(
-        dataset: xr.Dataset,
-        ) -> xr.DataArray:
+def get_winter_precip_accum_for_grid_point(
+        wx_data: xr.Dataset,
+        mask_data: xr.DataArray,
+        ) -> float:
     """
     Get the accumulated precipitation from after the fire season ends to
-    the end of the given year.
+    the end of the given year. Assumes only a single fire season is present.
+    (No shoulder fire seasons are allowed.)
+    If the fire season is active or inactive for the entire year, returns zero.
 
     Parameters
     ----------
-    dataset : xr.Dataset
+    wx_data: xr.Dataset
         A dataset containing an hourly PREC variable and a MASK variable.
         First dim must be time, followed by the spatial dims.
 
@@ -205,21 +208,15 @@ def get_post_fireseason_prec_accum(
     """
 
     # Get the precipitation data
-    hourly_precipitation_array = dataset["PREC"].values
-    season_mask_array = dataset["MASK"].values
+    hourly_precipitation_array = wx_data["PREC"].values
+    season_mask_array = mask_data["MASK"].values
 
-    # The index of the first time step after the fire season ends
-    transition_index = np.where(np.diff(season_mask_array))[0][-1] + 1
+    # The indices of the first time step after the fire season ends
+    transition_indices = np.where(np.diff(season_mask_array, axis=0) == -1)[0]
+    if len(transition_indices) == 0:
+        winter_precip_accum = 0.
+    else:
+        winter_precip_accum = np.sum(hourly_precipitation_array[transition_indices[0] + 1:])
+    
+    return winter_precip_accum
 
-    # Get the precipitation data after the fire season ends
-    winter_prec_accum_array = sum(hourly_precipitation_array[transition_index:])
-
-    # Create a DataArray with the accumulated precipitation
-    winter_prec_accum_dataArray = xr.DataArray(
-        winter_prec_accum_array,
-        dims=dataset["PREC"].dims[1:],  # Exclude the time dimension
-        coords=dataset["PREC"].coords[1:],  # Exclude the time dimension
-        name="winter_prec_accum"
-    )
-
-    return winter_prec_accum_dataArray
