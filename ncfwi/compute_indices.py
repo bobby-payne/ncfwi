@@ -18,27 +18,28 @@ from season import *
 from config import get_config
 
 
-def load_and_preprocess_data() -> xr.Dataset:
+def preprocess_data(wx_data) -> xr.Dataset:
     """
     Initialize by loading the configuration and data,
     and performing some preprocessing steps.
     This function should be called near/at the start of the script.
 
+    Parameters:
+        wx_data (xarray.Dataset): The raw weather data to preprocess.
+
     Returns:
-        data (xarray.Dataset): The preprocessed dataset.
+        xarray.Dataset
+            The preprocessed dataset.
     """
 
-    # Load in the config and data
-    data = load_wx_data()
-
     # Do a few preprocessing steps
-    data = transpose_dims(data)
-    data = rename_coordinates(data)
-    data = rename_wx_variables(data)
-    data = apply_transformations(data)
-    data = apply_spatial_crop(data)
+    wx_data = transpose_dims(wx_data)
+    wx_data = rename_coordinates(wx_data)
+    wx_data = rename_wx_variables(wx_data)
+    wx_data = apply_transformations(wx_data)
+    wx_data = apply_spatial_crop(wx_data)
 
-    return data
+    return wx_data
 
 
 def get_timezone_UTC_offset(lat: float, lon: float) -> float:
@@ -165,9 +166,8 @@ if __name__ == "__main__":
         sys.path.append(path_to_cffdrs_ng)
     from NG_FWI import hFWI
 
-    # Initialize data
-    print("Preprocessing data...")
-    wx_data = load_and_preprocess_data()
+    # Load (lazily) data
+    wx_data = load_wx_data()
 
     # Main computation loop
     for year in time_range:
@@ -176,7 +176,9 @@ if __name__ == "__main__":
         print(f"Loading data for year {year} into memory...")
         with ProgressBar():
             wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+
+        print("Preprocessing data...")
+        wx_data_i = preprocess_data(wx_data_i)
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
