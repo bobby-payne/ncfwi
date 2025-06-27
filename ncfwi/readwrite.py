@@ -90,6 +90,7 @@ def load_wx_data() -> xr.Dataset:
             preprocess=restrict_timespan_before_merging,
             combine="nested",
             concat_dim=get_config()["data_vars"]["t_dim_name"],
+            chunks={get_config()["data_vars"]["t_dim_name"]: 4380},
             )
 
     # Merge into an xarray.Dataset
