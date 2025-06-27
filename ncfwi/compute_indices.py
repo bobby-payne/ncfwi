@@ -37,7 +37,6 @@ def preprocess_data(wx_data) -> xr.Dataset:
     wx_data = rename_coordinates(wx_data)
     wx_data = rename_wx_variables(wx_data)
     wx_data = apply_transformations(wx_data)
-    wx_data = apply_spatial_crop(wx_data)
 
     return wx_data
 
