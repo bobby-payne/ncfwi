@@ -85,6 +85,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
     # Load and read config
     config = get_config()
+    overwinter = config["settings"]["overwinter"]
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
@@ -95,7 +96,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     # Select the data for the given grid point
     x, y = loc_index
     wx_data_ixy = wx_data_i.sel({x_dim_name: [x], y_dim_name: [y]})
-    
+
     # Obtain the fire season mask for this year in the form of an np array
     fire_season_mask_ixy = compute_fire_season(
         wx_data_ixy, return_as_xarray=True
@@ -141,6 +142,24 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         dataset_coords,
     )
 
+    # Add the post-fire season accumulated precip to FWI dataset
+    # (needed for overwintering the DC)
+    if overwinter:
+
+        winter_precip_accum = get_winter_precip_accum_for_grid_point(
+            wx_data_ixy, fire_season_mask_ixy
+        )
+
+        FWI_dataset_ixy["PFS_PREC"] = xr.DataArray(
+            np.array([[winter_precip_accum]]),  # shape (1, 1)
+            dims=(y_dim_name, x_dim_name),
+            coords={
+                y_dim_name: wx_data_ixy[y_dim_name],
+                x_dim_name: wx_data_ixy[x_dim_name]
+            },
+            name="PFS_PREC"
+        )
+
     return FWI_dataset_ixy
 
 
@@ -175,7 +194,7 @@ if __name__ == "__main__":
         print(f"Loading data for year {year} into memory...")
         print("(This may take a while!)")
         wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
-        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}.nc")
+        # wx_data_i = xr.open_dataset(f"/users/rpayne/wx_data_{year}_2.nc")
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
