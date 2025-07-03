@@ -1,8 +1,6 @@
 import xarray as xr
 import pandas as pd
 import os
-from typing import Callable
-from types import NoneType
 
 from config import get_config
 
@@ -25,7 +23,7 @@ def get_paths_to_wx_data() -> dict:
     return path_dictionary
 
 
-def restrict_timespan_before_merging(wx_data: xr.Dataset) -> xr.Dataset | NoneType:
+def crop_before_merging(wx_data: xr.Dataset) -> xr.Dataset | None:
     """
     A preprocessing function for xarray.open_mfdataset to only select data
     for the time range specified in the configuration file. This does two things:
@@ -46,16 +44,37 @@ def restrict_timespan_before_merging(wx_data: xr.Dataset) -> xr.Dataset | NoneTy
     """
 
     config = get_config()
+    x_dim = config["data_vars"]["x_dim_name"]
+    y_dim = config["data_vars"]["y_dim_name"]
+    crop_x_index = config["settings"]["crop_x_index"]
+    crop_y_index = config["settings"]["crop_y_index"]
     time_dim_name = config["data_vars"]["t_dim_name"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     data_timerange = pd.to_datetime(wx_data[time_dim_name].values)
+
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
-        return wx_data.isel({time_dim_name: slice(0, 0)})
+        wx_data = wx_data.isel({time_dim_name: slice(0, 0)})
     else:
-        return wx_data.sel({
+        wx_data = wx_data.sel({
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
+    if crop_x_index:
+        x0, x1 = crop_x_index
+        if x0 > x1:
+            raise ValueError(f"crop_x_index {crop_x_index} is invalid: x0 must be less than or equal to x1.")
+        wx_data = wx_data.isel(
+            {x_dim: slice(x0, x1 + 1)}
+        )
+    if crop_y_index:
+        y0, y1 = crop_y_index
+        if y0 > y1:
+            raise ValueError(f"crop_y_index {crop_y_index} is invalid: y0 must be less than or equal to y1.")
+        wx_data = wx_data.isel(
+            {y_dim: slice(y0, y1 + 1)}
+        )
+
+    return wx_data
 
 
 def load_wx_data() -> xr.Dataset:
@@ -87,9 +106,10 @@ def load_wx_data() -> xr.Dataset:
         path = wx_data_paths[wx_var]
         wx_data[wx_var] = xr.open_mfdataset(
             path,
-            preprocess=restrict_timespan_before_merging,
+            preprocess=crop_before_merging,
             combine="nested",
             concat_dim=get_config()["data_vars"]["t_dim_name"],
+            chunks={get_config()["data_vars"]["t_dim_name"]: 4380},
             )
 
     # Merge into an xarray.Dataset
