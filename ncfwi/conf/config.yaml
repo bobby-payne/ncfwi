@@ -1,14 +1,15 @@
 settings:
 
-  start_year: 2001
+  start_year: 2004
   end_year: 2004
-  crop_x_index: [140,268] #[110,366]
-  crop_y_index: [128,256] #[20,276]
+  crop_x_index: [110,366]
+  crop_y_index: [20,276]
+  overwinter: true
   chunks: "auto"
   parallel: true
   n_cpu_cores: 22
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
-  output_dir: "/users/rpayne/ERA5_HRLY_FWI_no_overwinter"
+  output_dir: "/users/rpayne/FWI_test"
   output_vars: ["season_mask", "PREC","FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
 
 calculation_parameters:
