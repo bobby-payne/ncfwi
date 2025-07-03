@@ -152,7 +152,8 @@ def save_to_netcdf(dataset: xr.Dataset) -> None:
 
         # Select data corresponding to variable to be saved
         var_data = dataset[var_name]
-        year = var_data[t_dim_name].dt.year.values[0]
+        if not var_name == "PFS_PREC":
+            year = var_data[t_dim_name].dt.year.values[0]
 
         # Save
         var_data.to_netcdf(os.path.join(output_dir, f"{year}.nc"))
