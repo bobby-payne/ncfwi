@@ -185,7 +185,7 @@ def compute_fire_season(wx_data: xr.Dataset,
 
 def get_winter_precip_accum_for_grid_point(
         wx_data: xr.Dataset,
-        mask_data: xr.DataArray,
+        mask_data: np.ndarray,
         ) -> float:
     """
     Get the accumulated precipitation from after the fire season ends to
@@ -208,15 +208,14 @@ def get_winter_precip_accum_for_grid_point(
     """
 
     # Get the precipitation data
-    hourly_precipitation_array = wx_data["PREC"].values
-    season_mask_array = mask_data["MASK"].values
-
+    hourly_precipitation_array = wx_data["PREC"].values[:, 0, 0]
+    season_mask_array = mask_data[:, 0, 0]
+    
     # The indices of the first time step after the fire season ends
-    transition_indices = np.where(np.diff(season_mask_array, axis=0) == -1)[0]
+    transition_indices = np.where(np.diff(season_mask_array) == 1)[0]
     if len(transition_indices) == 0:
         winter_precip_accum = 0.
     else:
-        winter_precip_accum = np.sum(hourly_precipitation_array[transition_indices[0] + 1:])
-    
-    return winter_precip_accum
+        winter_precip_accum = np.sum(hourly_precipitation_array[transition_indices[-1] + 1:])
 
+    return winter_precip_accum
