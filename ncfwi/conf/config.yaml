@@ -1,6 +1,6 @@
 settings:
 
-  start_year: 2004
+  start_year: 2003
   end_year: 2004
   crop_x_index: [110,366]
   crop_y_index: [20,276]
@@ -10,7 +10,7 @@ settings:
   n_cpu_cores: 22
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
   output_dir: "/users/rpayne/FWI_test"
-  output_vars: ["season_mask", "PREC","FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
+  output_vars: ["season_mask", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
 
 calculation_parameters:
 
@@ -20,6 +20,8 @@ calculation_parameters:
   season_consecutive_days: 3
   season_start_temp: 12.0
   season_stop_temp: 5.0
+  carry_over_fraction: 1.0
+  wetting_efficiency_fraction: 0.75
 
 # Note: all data must have identical dimensions, as well as have
 # both latitude and longitude as a data variable!

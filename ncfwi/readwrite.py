@@ -3,6 +3,7 @@ import pandas as pd
 import os
 
 from config import get_config
+from formatting import *
 
 
 def get_paths_to_wx_data() -> dict:
@@ -23,7 +24,7 @@ def get_paths_to_wx_data() -> dict:
     return path_dictionary
 
 
-def crop_before_merging(wx_data: xr.Dataset) -> xr.Dataset | None:
+def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
     """
     A preprocessing function for xarray.open_mfdataset to only select data
     for the time range specified in the configuration file. This does two things:
@@ -44,14 +45,14 @@ def crop_before_merging(wx_data: xr.Dataset) -> xr.Dataset | None:
     """
 
     config = get_config()
-    x_dim = config["data_vars"]["x_dim_name"]
-    y_dim = config["data_vars"]["y_dim_name"]
-    crop_x_index = config["settings"]["crop_x_index"]
-    crop_y_index = config["settings"]["crop_y_index"]
     time_dim_name = config["data_vars"]["t_dim_name"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     data_timerange = pd.to_datetime(wx_data[time_dim_name].values)
+
+    wx_data = rename_coordinates(wx_data)
+    wx_data = rename_wx_variables(wx_data)
+    wx_data = apply_spatial_crop(wx_data)
 
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
         wx_data = wx_data.isel({time_dim_name: slice(0, 0)})
@@ -59,20 +60,6 @@ def crop_before_merging(wx_data: xr.Dataset) -> xr.Dataset | None:
         wx_data = wx_data.sel({
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
-    if crop_x_index:
-        x0, x1 = crop_x_index
-        if x0 > x1:
-            raise ValueError(f"crop_x_index {crop_x_index} is invalid: x0 must be less than or equal to x1.")
-        wx_data = wx_data.isel(
-            {x_dim: slice(x0, x1 + 1)}
-        )
-    if crop_y_index:
-        y0, y1 = crop_y_index
-        if y0 > y1:
-            raise ValueError(f"crop_y_index {crop_y_index} is invalid: y0 must be less than or equal to y1.")
-        wx_data = wx_data.isel(
-            {y_dim: slice(y0, y1 + 1)}
-        )
 
     return wx_data
 
@@ -96,6 +83,11 @@ def load_wx_data() -> xr.Dataset:
     """
 
     # Get paths (as strings) to data
+    config = get_config()
+    x_dim_name = config["data_vars"]["x_dim_name"]
+    y_dim_name = config["data_vars"]["y_dim_name"]
+    x0, x1 = config["settings"]["crop_x_index"]
+    y0, y1 = config["settings"]["crop_y_index"]
     wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
@@ -106,7 +98,7 @@ def load_wx_data() -> xr.Dataset:
         path = wx_data_paths[wx_var]
         wx_data[wx_var] = xr.open_mfdataset(
             path,
-            preprocess=crop_before_merging,
+            preprocess=preprocess_data,
             combine="nested",
             concat_dim=get_config()["data_vars"]["t_dim_name"],
             chunks={get_config()["data_vars"]["t_dim_name"]: 4380},
@@ -115,10 +107,12 @@ def load_wx_data() -> xr.Dataset:
     # Merge into an xarray.Dataset
     wx_data_xarray = xr.merge(wx_data.values(), join="exact")
 
-    # Add all dimensions as coordinates, provided they aren't already one
+    # Add spatial dimensions as coordinates, provided they aren't already one
     for dim in wx_data_xarray.dims:
-        if dim not in wx_data_xarray.coords:
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: wx_data_xarray[dim]})
+        if (dim not in wx_data_xarray.coords) and (dim == x_dim_name):
+            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(x0, x1 + 1)})
+        elif (dim not in wx_data_xarray.coords) and (dim == y_dim_name):
+            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(y0, y1 + 1)})
 
     return wx_data_xarray
 

@@ -15,6 +15,7 @@ from dask.diagnostics import ProgressBar
 from formatting import *
 from readwrite import *
 from season import *
+from overwinter import *
 from config import get_config
 
 
@@ -86,6 +87,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
     # Load and read config
     config = get_config()
+    output_dir = config["settings"]["output_dir"]
     overwinter = config["settings"]["overwinter"]
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
@@ -114,6 +116,32 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     # Apply the fire season mask to the data at this grid point
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
 
+    # Overwinter the drought code (DC)
+    if overwinter and not (year == start_year):
+
+        lastyear_DC = xr.open_dataset(output_dir + f"/DC/{year-1}.nc")
+        lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
+        lastyear_DC = lastyear_DC.where(~np.isnan(lastyear_DC['DC']),drop=True)
+        lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
+
+        lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
+        lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
+        lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
+
+        thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
+            wx_data_ixy, fire_season_mask_ixy
+        )
+
+        net_precip_accum = lastyear_postfs_precip_accum + thisyear_prefs_precip_accum
+
+        DC_startup = overwinter_DC(
+            lastyear_DC_fin,
+            net_precip_accum,
+        )
+
+    else:
+        DC_startup = DC_DEFAULT
+
     # If fire season is active for at least one time step, calculate the FWIs
     # else, return a DataFrame of numpy NaNs
     if any(fire_season_mask_ixy):
@@ -122,7 +150,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             UTC_offset,
             ffmc_old=FFMC_DEFAULT,
             dmc_old=DMC_DEFAULT,
-            dc_old=DC_DEFAULT,
+            dc_old=DC_startup,
             )
     else:
         FWI_dataframe_ixy = get_empty_hFWI_dataframe(year, lat, lon, UTC_offset)
@@ -143,16 +171,16 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         dataset_coords,
     )
 
-    # Add the post-fire season accumulated precip to FWI dataset
-    # (needed for overwintering the DC)
+    # Add this year's post-fire season accumulated precip to FWI dataset
+    # (needed for overwintering the DC next year)
     if overwinter:
 
-        winter_precip_accum = get_winter_precip_accum_for_grid_point(
+        thisyear_postfs_precip_accum = get_postfs_precip_accum_for_grid_point(
             wx_data_ixy, fire_season_mask_ixy
         )
 
         FWI_dataset_ixy["PFS_PREC"] = xr.DataArray(
-            np.array([[winter_precip_accum]]),  # shape (1, 1)
+            np.array([[thisyear_postfs_precip_accum]]),  # shape (1, 1)
             dims=(y_dim_name, x_dim_name),
             coords={
                 y_dim_name: wx_data_ixy[y_dim_name],
@@ -195,8 +223,9 @@ if __name__ == "__main__":
         with ProgressBar():
             wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
 
-        print("Preprocessing data...")
-        wx_data_i = preprocess_data(wx_data_i)
+        print("Transpose dims and apply transformations...")
+        wx_data_i = transpose_dims(wx_data_i)
+        wx_data_i = apply_transformations(wx_data_i)
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
