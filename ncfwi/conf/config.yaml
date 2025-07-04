@@ -20,6 +20,8 @@ calculation_parameters:
   season_consecutive_days: 3
   season_start_temp: 12.0
   season_stop_temp: 5.0
+  carry_over_fraction: 1.0
+  wetting_efficiency_fraction: 0.75
 
 # Note: all data must have identical dimensions, as well as have
 # both latitude and longitude as a data variable!
