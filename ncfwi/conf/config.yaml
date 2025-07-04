@@ -2,11 +2,11 @@ settings:
 
   start_year: 2003
   end_year: 2004
-  crop_x_index: [259,261] #[110,366]
-  crop_y_index: [39,41] #[20,276]
+  crop_x_index: [110,366]
+  crop_y_index: [20,276]
   overwinter: true
   chunks: "auto"
-  parallel: false
+  parallel: true
   n_cpu_cores: 22
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
   output_dir: "/users/rpayne/FWI_test"

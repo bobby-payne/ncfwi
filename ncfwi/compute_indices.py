@@ -117,18 +117,16 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
 
     # Overwinter the drought code (DC)
-    if overwinter and not year == start_year:
+    if overwinter and not (year == start_year):
 
         lastyear_DC = xr.open_dataset(output_dir + f"/DC/{year-1}.nc")
         lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
         lastyear_DC = lastyear_DC.where(~np.isnan(lastyear_DC['DC']),drop=True)
         lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
-        print(type(lastyear_DC_fin),np.shape(lastyear_DC_fin))
 
-        lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{start_year-1}.nc")
+        lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
         lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
         lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
-        print(type(lastyear_postfs_precip_accum),np.shape(lastyear_postfs_precip_accum))
 
         thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
             wx_data_ixy, fire_season_mask_ixy
@@ -225,8 +223,9 @@ if __name__ == "__main__":
         with ProgressBar():
             wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
 
-        print("Preprocessing data...")
-        wx_data_i = preprocess_data(wx_data_i)
+        print("Transpose dims and apply transformations...")
+        wx_data_i = transpose_dims(wx_data_i)
+        wx_data_i = apply_transformations(wx_data_i)
 
         if parallel:  # Compute the FWIs at each grid point in parallel
 
