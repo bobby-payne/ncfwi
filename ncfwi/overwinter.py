@@ -6,7 +6,7 @@ from readwrite import *
 from config import get_config
 
 
-def get_winter_precip_accum_for_grid_point(
+def get_postfs_precip_accum_for_grid_point(
         wx_data: xr.Dataset,
         mask_data: np.ndarray,
         ) -> float:
@@ -24,10 +24,46 @@ def get_winter_precip_accum_for_grid_point(
 
     Returns
     -------
-    xr.DataArray
-        A DataArray containing the accumulated precipitation after the fire season,
-        with dims matching the input dataset's spatial dimensions.
-        The time dimension is removed, as it is not relevant for the accumulation.
+    float
+        The accumulated precipitation from after the fire season to the
+        end of the year.
+    """
+
+    # Get the precipitation data
+    hourly_precipitation_array = wx_data["PREC"].values[:, 0, 0]
+    season_mask_array = mask_data[:, 0, 0]
+
+    # The indices of the first time step after the fire season ends
+    transition_indices = np.where(np.diff(season_mask_array) == 1)[0]
+    if len(transition_indices) == 0:
+        postfs_precip_accum = 0.
+    else:
+        postfs_precip_accum = np.sum(hourly_precipitation_array[transition_indices[-1] + 1:])
+
+    return postfs_precip_accum
+
+
+def get_prefs_precip_accum_for_grid_point(
+        wx_data: xr.Dataset,
+        mask_data: np.ndarray,
+        ) -> float:
+    """
+    Get the accumulated precipitation from start of the year to
+    start of the fire season. Assumes only a single fire season is present.
+    (No shoulder fire seasons are allowed.)
+    If the fire season is active or inactive for the entire year, returns zero.
+
+    Parameters
+    ----------
+    wx_data: xr.Dataset
+        A dataset containing an hourly PREC variable and a MASK variable.
+        First dim must be time, followed by the spatial dims.
+
+    Returns
+    -------
+    float
+        The accumulated precipitation from start of year to
+        the beginning of the fire season.
     """
 
     # Get the precipitation data
@@ -37,11 +73,11 @@ def get_winter_precip_accum_for_grid_point(
     # The indices of the first time step after the fire season ends
     transition_indices = np.where(np.diff(season_mask_array) == 1)[0]
     if len(transition_indices) == 0:
-        winter_precip_accum = 0.
+        prefs_precip_accum = 0.
     else:
-        winter_precip_accum = np.sum(hourly_precipitation_array[transition_indices[-1] + 1:])
+        prefs_precip_accum = np.sum(hourly_precipitation_array[:transition_indices[0]])
 
-    return winter_precip_accum
+    return prefs_precip_accum
 
 
 def overwinter_DC (final_fall_DC: float,
