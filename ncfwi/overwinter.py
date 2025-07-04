@@ -19,7 +19,10 @@ def get_postfs_precip_accum_for_grid_point(
     Parameters
     ----------
     wx_data: xr.Dataset
-        A dataset containing an hourly PREC variable and a MASK variable.
+        A dataset containing an hourly PREC variable.
+        First dim must be time, followed by the spatial dims.
+    mask_data: np.ndarray
+        A 3D array with the fire season mask.
         First dim must be time, followed by the spatial dims.
 
     Returns
@@ -56,7 +59,10 @@ def get_prefs_precip_accum_for_grid_point(
     Parameters
     ----------
     wx_data: xr.Dataset
-        A dataset containing an hourly PREC variable and a MASK variable.
+        A dataset containing an hourly PREC variable.
+        First dim must be time, followed by the spatial dims.
+    mask_data: np.ndarray
+        A 3D array with the fire season mask.
         First dim must be time, followed by the spatial dims.
 
     Returns
@@ -69,8 +75,8 @@ def get_prefs_precip_accum_for_grid_point(
     # Get the precipitation data
     hourly_precipitation_array = wx_data["PREC"].values[:, 0, 0]
     season_mask_array = mask_data[:, 0, 0]
-    
-    # The indices of the first time step after the fire season ends
+
+    # The indices of the first time step of the fire season
     transition_indices = np.where(np.diff(season_mask_array) == 1)[0]
     if len(transition_indices) == 0:
         prefs_precip_accum = 0.
