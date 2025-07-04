@@ -119,7 +119,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     # Overwinter the drought code (DC)
     if overwinter and not year == start_year:
 
-        lastyear_DC = xr.open_dataset(output_dir + f"/DC/{start_year-1}.nc")
+        lastyear_DC = xr.open_dataset(output_dir + f"/DC/{year-1}.nc")
         lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
         lastyear_DC = lastyear_DC.where(~np.isnan(lastyear_DC['DC']),drop=True)
         lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
