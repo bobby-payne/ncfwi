@@ -227,6 +227,7 @@ if __name__ == "__main__":
         wx_data_i = transpose_dims(wx_data_i)
         wx_data_i = apply_transformations(wx_data_i)
 
+        print("Computing indices...")
         if parallel:  # Compute the FWIs at each grid point in parallel
 
             coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
@@ -242,7 +243,6 @@ if __name__ == "__main__":
             for x in wx_data_i[x_dim_name].values:
                 for y in wx_data_i[y_dim_name].values:
 
-                    print(f"Computing FWI for (x={x}, y={y})...")
                     FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
                     FWIs_list.append(FWIs_at_xy)
 
