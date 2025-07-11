@@ -1,6 +1,7 @@
 import xarray as xr
 import pandas as pd
 import os
+from glob import glob
 
 from config import get_config
 from formatting import *
@@ -110,32 +111,34 @@ def load_wx_data() -> xr.Dataset:
     # Add spatial dimensions as coordinates, provided they aren't already one
     for dim in wx_data_xarray.dims:
         if (dim not in wx_data_xarray.coords) and (dim == x_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(x0, x1 + 1)})
+            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(x0, x1)})
         elif (dim not in wx_data_xarray.coords) and (dim == y_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(y0, y1 + 1)})
+            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(y0, y1)})
 
     return wx_data_xarray
 
 
-def save_to_netcdf(dataset: xr.Dataset) -> None:
+def save_to_netcdf(dataset: xr.Dataset, year: int, file_suffix: str | None = None) -> None:
     """
     Saves an xarray dataset to a netCDF file at the location
     specified by the user in the config file.
+    The filename will be in the format "{year}{file_suffix}.nc".
 
     Parameters
     ----------
     dataset : xarray.Dataset
         The dataset to save.
-    filename : str
-        The name of the file to save the dataset as (WITHOUT path).
-        The full path will be constructed using the output directory
-        specified in the config file.
+    year : int
+        The year to use in the filename.
+    file_suffix : str
+        A string to append to the end of the filename,
+        NOT including the file extension.
+        If None, no suffix is added.
     """
 
     # Get the path to save the data
     config = get_config()
     path_out = config["settings"]["output_dir"]
-    t_dim_name = config["data_vars"]["t_dim_name"]
 
     # Save each variable in its own folder
     for var_name in dataset.data_vars:
@@ -144,10 +147,28 @@ def save_to_netcdf(dataset: xr.Dataset) -> None:
         output_dir = os.path.join(path_out, str(var_name))
         os.makedirs(output_dir, exist_ok=True)
 
-        # Select data corresponding to variable to be saved
+        # Select data corresponding to variable to be saved and then save
         var_data = dataset[var_name]
-        if not var_name == "PFS_PREC":
-            year = var_data[t_dim_name].dt.year.values[0]
+        var_data.to_netcdf(os.path.join(output_dir, f"{year}{file_suffix}.nc"))
 
-        # Save
-        var_data.to_netcdf(os.path.join(output_dir, f"{year}.nc"))
+
+def combine_batched_files(year: int) -> None:
+    """
+    Combines batched netCDF files into a single file for each variable.
+    The files are expected to be in the output directory specified in the config.
+
+    Parameters
+    ----------
+    year : int
+        The year for which the files are to be combined.
+        The files should be named in the format "{year}_{batch#}.nc".
+    """
+    
+    config = get_config()
+    path_out = config["settings"]["output_dir"]
+    
+    for var_name in config["settings"]["output_vars"]:
+        var_path = os.path.join(path_out, str(var_name))
+        files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
+        dataset = xr.open_mfdataset(files, combine="by_coords")
+        dataset.to_netcdf(os.path.join(var_path, f"{year}.nc"))
