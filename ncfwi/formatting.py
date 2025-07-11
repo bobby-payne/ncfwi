@@ -135,14 +135,14 @@ def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
     if crop_x_index:
         x0, x1 = crop_x_index
         wx_data = wx_data.isel(
-            {x_dim: slice(x0, x1 + 1)}
+            {x_dim: slice(x0, x1)}
         )
     
     crop_y_index = config["settings"]["crop_y_index"]
     if crop_y_index:
         y0, y1 = crop_y_index
         wx_data = wx_data.isel(
-            {y_dim: slice(y0, y1 + 1)}
+            {y_dim: slice(y0, y1)}
         )
 
     return wx_data

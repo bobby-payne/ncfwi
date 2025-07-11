@@ -1,14 +1,13 @@
 import sys
 import gc
-import pandas as pd
 import xarray as xr
 import numpy as np
 import pytz
-import tqdm
 import time
 from datetime import datetime
 from timezonefinder import TimezoneFinder
 from joblib import Parallel, delayed
+from tqdm import tqdm
 from itertools import product
 from dask.diagnostics import ProgressBar
 
@@ -202,11 +201,13 @@ if __name__ == "__main__":
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
+    crop_x_index = config["settings"]["crop_x_index"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
+    save_in_batches = config["settings"]["output_in_batches"]
     time_range = np.arange(start_year, end_year + 1)
     if path_to_cffdrs_ng not in sys.path:
         sys.path.append(path_to_cffdrs_ng)
@@ -232,10 +233,11 @@ if __name__ == "__main__":
 
             coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
                                              wx_data_i[y_dim_name].values))
-            FWIs_list = Parallel(n_jobs=n_cores)(
-                delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
-                for loc_index in tqdm.tqdm(coordinate_tuples)
-            )
+            with Parallel(n_jobs=n_cores) as joblib_parallel:
+                FWIs_list = joblib_parallel(
+                    delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
+                    for loc_index in tqdm(coordinate_tuples)
+                )
 
         else:  # Compute the FWIs at grid point by grid point in series
 
@@ -246,12 +248,27 @@ if __name__ == "__main__":
                     FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
                     FWIs_list.append(FWIs_at_xy)
 
-        print(f"Combining FWI data for year {year}...")
-        FWIs_dataset = xr.combine_by_coords(FWIs_list, join='outer')
-        print(f"Saving FWI data for year {year}...")
-        save_to_netcdf(FWIs_dataset)
+        if save_in_batches:
+
+            batch_size = (crop_x_index[1] - crop_x_index[0]) * 20
+            for i in tqdm(range(0, len(FWIs_list), batch_size)):
+                batch = FWIs_list[i:i + batch_size]
+                FWIs_batch_dataset = xr.combine_by_coords(batch)
+                print(f"Saving batch of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
+                print(f"{i}, {i+batch_size}, {len(FWIs_list)}, {i // batch_size + 1}")
+                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
+                combine_batched_files(year)
+
+        else:
+
+            print("Combining data... (may take a while)")
+            FWIs_dataset = xr.combine_by_coords(FWIs_list)
+
+            print(f"Saving FWI data for year {year} of size {FWIs_dataset.nbytes / 1e6:.2f} MB...")
+            save_to_netcdf(FWIs_dataset, year=year)
+
         gc.collect()
-    
+
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)
     print(f"Finished in {int(n_minutes)} minutes and {n_seconds:.2f} seconds.")
