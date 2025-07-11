@@ -172,3 +172,5 @@ def combine_batched_files(year: int) -> None:
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
         dataset = xr.open_mfdataset(files, combine="by_coords")
         dataset.to_netcdf(os.path.join(var_path, f"{year}.nc"))
+        for f in files:  # Remove the individual batch files
+            os.remove(f)
