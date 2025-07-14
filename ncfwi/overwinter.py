@@ -117,5 +117,6 @@ def overwinter_DC (final_fall_DC: float,
         + 3.94 * winter_precip_accum * wetting_efficiency_fraction
     )
     startup_DC = 400. * np.log(spring_moisture_equivalent_DC / 800.)
+    startup_DC = np.clip(startup_DC, 15, None)  # Ensure DC is within valid range
 
     return int(startup_DC)
