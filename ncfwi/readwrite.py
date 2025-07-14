@@ -1,5 +1,6 @@
 import xarray as xr
 import pandas as pd
+import numpy as np
 import os
 from glob import glob
 
@@ -163,11 +164,13 @@ def combine_batched_files(year: int) -> None:
         The year for which the files are to be combined.
         The files should be named in the format "{year}_{batch#}.nc".
     """
-    
+
     config = get_config()
     path_out = config["settings"]["output_dir"]
-    
-    for var_name in config["settings"]["output_vars"]:
+    output_vars = config["settings"]["output_vars"]
+    output_vars = np.append(output_vars, ["PFS_PREC"])
+
+    for var_name in output_vars:
         var_path = os.path.join(path_out, str(var_name))
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
         dataset = xr.open_mfdataset(files, combine="by_coords")

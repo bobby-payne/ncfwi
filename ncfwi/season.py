@@ -175,7 +175,7 @@ def compute_fire_season(wx_data: xr.Dataset,
             fire_season_mask,
             dims=wx_data["TEMP"].dims,
             coords=wx_data["TEMP"].coords,
-            name="fire_season_mask"
+            name="MASK"
         ).to_dataset()
 
         return fire_season_mask_xr  # type: ignore

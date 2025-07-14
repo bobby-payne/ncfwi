@@ -250,7 +250,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     # Select the desired output variables and
     # convert the pandas dataframe to an xarray Dataset
     # Note that mask is handled separately (see below)
-    output_vars_no_mask = [var for var in output_vars if var.lower() != 'season_mask']
+    output_vars_no_mask = [var for var in output_vars if var.lower() != 'mask']
     hFWI_dataset = xr.Dataset(
         {
             var: (
@@ -263,7 +263,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     )
 
     # The season_mask variable is handled differently
-    if 'season_mask' in output_vars:
+    if 'MASK' in output_vars:
         season_mask_dataset = xr.Dataset(
             {
                 'MASK': (dims_list, season_mask.reshape(-1, 1, 1)),

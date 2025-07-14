@@ -1,7 +1,7 @@
 settings:
 
-  start_year: 2003
-  end_year: 2004
+  start_year: 2001
+  end_year: 2014
   crop_x_index: [140,268]
   crop_y_index: [128,256]
   overwinter: true
@@ -10,7 +10,7 @@ settings:
   n_cpu_cores: 20
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
   output_dir: "/users/rpayne/FWI_test"
-  output_vars: ["season_mask", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
+  output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
   output_in_batches: true
 
 calculation_parameters:

@@ -102,7 +102,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     # Obtain the fire season mask for this year in the form of an np array
     fire_season_mask_ixy = compute_fire_season(
         wx_data_ixy, return_as_xarray=True
-    )['fire_season_mask'].values
+    )['MASK'].values
 
     # convert the wx data to the pandas DataFrame needed for hFWI fn.
     wx_dataframe_ixy = xarray_to_pandas_dataframe(wx_data_ixy.squeeze())
@@ -254,10 +254,9 @@ if __name__ == "__main__":
             for i in tqdm(range(0, len(FWIs_list), batch_size)):
                 batch = FWIs_list[i:i + batch_size]
                 FWIs_batch_dataset = xr.combine_by_coords(batch)
-                print(f"Saving batch of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
-                print(f"{i}, {i+batch_size}, {len(FWIs_list)}, {i // batch_size + 1}")
+                print(f"Saving batch {i+1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
                 save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
-                combine_batched_files(year)
+            combine_batched_files(year)
 
         else:
 
