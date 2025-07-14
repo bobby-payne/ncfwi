@@ -7,7 +7,7 @@ settings:
   overwinter: true
   chunks: "auto"
   parallel: true
-  n_cpu_cores: 20
+  n_cpu_cores: 19
   path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
   output_dir: "/users/rpayne/FWI_test"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]

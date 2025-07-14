@@ -120,23 +120,28 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
         lastyear_DC = xr.open_dataset(output_dir + f"/DC/{year-1}.nc")
         lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
-        lastyear_DC = lastyear_DC.where(~np.isnan(lastyear_DC['DC']),drop=True)
-        lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
+        nan_mask = ~np.isnan(lastyear_DC['DC'])  # mask out NaN values of DC
+        if nan_mask.any():
+            lastyear_DC = lastyear_DC.where(nan_mask, drop=True)
+            lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
 
-        lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
-        lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
-        lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
+            lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
+            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
+            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
 
-        thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
-            wx_data_ixy, fire_season_mask_ixy
-        )
+            thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
+                wx_data_ixy, fire_season_mask_ixy
+            )
 
-        net_precip_accum = lastyear_postfs_precip_accum + thisyear_prefs_precip_accum
+            net_precip_accum = lastyear_postfs_precip_accum + thisyear_prefs_precip_accum
 
-        DC_startup = overwinter_DC(
-            lastyear_DC_fin,
-            net_precip_accum,
-        )
+            DC_startup = overwinter_DC(
+                lastyear_DC_fin,
+                net_precip_accum,
+            )
+
+        else:
+            DC_startup = DC_DEFAULT
 
     else:
         DC_startup = DC_DEFAULT
