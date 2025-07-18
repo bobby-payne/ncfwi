@@ -107,7 +107,7 @@ def load_wx_data() -> xr.Dataset:
             )
 
     # Merge into an xarray.Dataset
-    wx_data_xarray = xr.merge(wx_data.values(), join="exact")
+    wx_data_xarray = xr.merge(wx_data.values(), join="inner")
 
     # Add spatial dimensions as coordinates, provided they aren't already one
     for dim in wx_data_xarray.dims:
