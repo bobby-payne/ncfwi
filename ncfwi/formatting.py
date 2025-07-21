@@ -102,9 +102,9 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     for coord in data.coords:
 
         if coord in alternative_latitude_names:
-            data = data.rename({coord: 'lat'})
+            data = data.assign_coords({'lat': data.coords[coord] }).drop_vars(coord)
         elif coord in alternative_longitude_names:
-            data = data.rename({coord: 'long'})
+            data = data.assign_coords({'long': data.coords[coord] }).drop_vars(coord)
         elif coord in alternative_time_names:
             data = data.rename({coord: 'time'})
 
