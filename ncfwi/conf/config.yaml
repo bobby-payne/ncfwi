@@ -31,6 +31,8 @@ data_vars:
   t_dim_name: "time"
   x_dim_name: "rlon"
   y_dim_name: "rlat"
+  lon_coord_name: "lon"
+  lat_coord_name: "lat"
 
   wind_speed:
 
