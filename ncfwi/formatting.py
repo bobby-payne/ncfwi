@@ -99,7 +99,9 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     longitude_name = config["data_vars"]['lon_coord_name']
     time_name = config["data_vars"]['t_dim_name']
 
-    # Loop through coordinates in the dataset and rename them if they match any of the alternative names
+    # Loop through coordinates in the dataset and rename them if they match
+    # any of the alternative names because hFWI requires certain names :(
+    # (dims are NOT renamed)
     if not latitude_name == 'lat':
         data = data.rename_vars({latitude_name: 'lat'})
     if not longitude_name == 'long':

@@ -91,6 +91,8 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
+    latitude_name = config["data_vars"]['lat_coord_name']
+    longitude_name = config["data_vars"]['lon_coord_name']
     FFMC_DEFAULT = config["calculation_parameters"]["FFMC_default"]
     DMC_DEFAULT = config["calculation_parameters"]["DMC_default"]
     DC_DEFAULT = config["calculation_parameters"]["DC_default"]
@@ -161,14 +163,21 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
     # Convert the output pandas dataframe into an xarray Dataset
     # IMPORTANT: The provided time coordinate in dataset_coords must line up
-    # with the data that have been MASKED, not for the entire year.
-    dataset_coords = {
-            t_dim_name: wx_dataframe_ixy[t_dim_name].values,  # array of datetimes
-            x_dim_name: [x],
-            y_dim_name: [y],
-            'lat': ([y_dim_name, x_dim_name], np.array([[lat]])),
-            'lon': ([y_dim_name, x_dim_name], np.array([[lon]])),
-            }
+    # with the data that have been MASKED, not the entire year.
+    if latitude_name == y_dim_name and longitude_name == x_dim_name:
+        dataset_coords = {
+                t_dim_name: wx_dataframe_ixy[t_dim_name].values,  # array of datetimes
+                longitude_name: ([x_dim_name], np.array([lon])),
+                latitude_name: ([y_dim_name], np.array([lat])),
+                }
+    else:
+        dataset_coords = {
+                t_dim_name: wx_dataframe_ixy[t_dim_name].values,
+                x_dim_name: [x],
+                y_dim_name: [y],
+                longitude_name: ([y_dim_name, x_dim_name], np.array([[lon]])),
+                latitude_name: ([y_dim_name, x_dim_name], np.array([[lat]])),
+                }
     FWI_dataset_ixy = hFWI_output_to_xarray_dataset(
         FWI_dataframe_ixy,
         fire_season_mask_ixy,
