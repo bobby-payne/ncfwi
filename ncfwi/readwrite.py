@@ -50,12 +50,14 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
     time_dim_name = config["data_vars"]["t_dim_name"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
+    convert_lon = config["settings"]["convert_lon_to_centered"]
     data_timerange = pd.to_datetime(wx_data[time_dim_name].values)
 
     wx_data = rename_coordinates(wx_data)
     wx_data = rename_wx_variables(wx_data)
-    wx_data = convert_lon_to_centered(wx_data)
     wx_data = apply_spatial_crop(wx_data)
+    if convert_lon:
+        wx_data = convert_lon_to_centered(wx_data)
 
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
         wx_data = wx_data.isel({time_dim_name: slice(0, 0)})
