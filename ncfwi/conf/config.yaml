@@ -37,28 +37,28 @@ data_vars:
   wind_speed:
 
     alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10']
-    description: "Wind speed at 10 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/WS10/*.nc"
-    transform: null
+    description: "Wind speed at 10 meters above ground level (in km/hr)"
+    path: "/users/rpayne/data/unproc/ERA5/ALL/sfcWind_1hr_ERA5_an_RDA-025_1979010100-2018123123.nc"
+    transform: "x * 3.6"
 
   air_temperature:
 
     alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS']
-    description: "Air temperature at 2 meters above ground level"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/*.nc"
+    description: "Air temperature at 2 meters above ground level (in °C)"
+    path: "/users/rpayne/data/unproc/ERA5/ALL/tas_1hr_ERA5_an_RDA-025_1979010100-2018123123.nc"
     transform: "x - 273.15"
 
   relative_humidity:
 
     alternative_names: ["RH", "RH2", "relative_humidity_2m", "RH2M", "rh", "rh2"]
-    description: "Relative humidity at 2 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/RH/*.nc"
+    description: "Relative humidity at 2 meters above ground level (in %, 0-100)"
+    path: "/users/rpayne/data/unproc/ERA5/RH_new/*.nc"
     transform: null
 
   precipitation:
 
     alternative_names: ["Precip", "Pr", "total_precipitation", "PREC", "prec", "pr", "rainfall", "Rainfall"]
-    description: "Total accumulated precipitation over the past hour"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/*.nc"
-    transform: null
+    description: "Total accumulated precipitation over the past hour (in mm)"
+    path: "/users/rpayne/data/unproc/ERA5/PREC_fc/*.nc"
+    transform: "x * 1000"
 
