@@ -54,6 +54,7 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
 
     wx_data = rename_coordinates(wx_data)
     wx_data = rename_wx_variables(wx_data)
+    wx_data = convert_lon_to_centered(wx_data)
     wx_data = apply_spatial_crop(wx_data)
 
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
@@ -85,11 +86,6 @@ def load_wx_data() -> xr.Dataset:
     """
 
     # Get paths (as strings) to data
-    config = get_config()
-    x_dim_name = config["data_vars"]["x_dim_name"]
-    y_dim_name = config["data_vars"]["y_dim_name"]
-    x0, x1 = config["settings"]["crop_x_index"]
-    y0, y1 = config["settings"]["crop_y_index"]
     wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
@@ -108,13 +104,6 @@ def load_wx_data() -> xr.Dataset:
 
     # Merge into an xarray.Dataset
     wx_data_xarray = xr.merge(wx_data.values(), join="inner")
-
-    # Add spatial dimensions as coordinates, provided they aren't already one
-    for dim in wx_data_xarray.dims:
-        if (dim not in wx_data_xarray.coords) and (dim == x_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(x0, x1)})
-        elif (dim not in wx_data_xarray.coords) and (dim == y_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(y0, y1)})
 
     return wx_data_xarray
 
