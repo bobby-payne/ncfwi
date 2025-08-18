@@ -1,9 +1,10 @@
 settings:
 
   start_year: 2001
-  end_year: 2014
-  crop_x_index: [140,268]
-  crop_y_index: [128,256]
+  end_year: 2002
+  crop_x_index: [116,276]
+  crop_y_index: [40,200]
+  convert_lon_to_centered: True
   overwinter: true
   chunks: "auto"
   parallel: true
@@ -29,21 +30,21 @@ calculation_parameters:
 data_vars:
 
   t_dim_name: "time"
-  x_dim_name: "rlon"
-  y_dim_name: "rlat"
-  lon_coord_name: "lon"
-  lat_coord_name: "lat"
+  x_dim_name: "longitude"
+  y_dim_name: "latitude"
+  lon_coord_name: "longitude"
+  lat_coord_name: "latitude"
 
   wind_speed:
 
-    alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10']
+    alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10','sfcWind','SFCWIND']
     description: "Wind speed at 10 meters above ground level (in km/hr)"
     path: "/users/rpayne/data/unproc/ERA5/ALL/sfcWind_1hr_ERA5_an_RDA-025_1979010100-2018123123.nc"
     transform: "x * 3.6"
 
   air_temperature:
 
-    alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS']
+    alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS', 'tas']
     description: "Air temperature at 2 meters above ground level (in °C)"
     path: "/users/rpayne/data/unproc/ERA5/ALL/tas_1hr_ERA5_an_RDA-025_1979010100-2018123123.nc"
     transform: "x - 273.15"

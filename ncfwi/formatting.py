@@ -110,6 +110,29 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
+def convert_lon_to_centered(wx_data: xr.Dataset) -> xr.Dataset:
+    """
+    Converts the longitude coordinate from the [0,360) convention
+    to the [-180,180) convention, required for timezone retrieval.
+
+    Parameters
+    ----------
+    data : xr.Dataset
+        The dataset containing the [0,360) longitude coordinate.
+
+    Returns
+    -------
+    xr.Dataset
+        The dataset containing the [-180,180) longitude coordinate.
+    """
+
+    wx_data = wx_data.assign_coords({
+        'long': (((wx_data['long'] + 180.) % 360.) - 180.)
+    })
+
+    return wx_data
+
+
 def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
     """
     Select a specific region by indexing the x and y dimensions
