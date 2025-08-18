@@ -94,19 +94,18 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     """
 
     # Common alternative names for latitude and longitude coordinates
-    alternative_latitude_names = ['lat', 'latitude', 'LAT', 'LATITUDE', 'XLAT']
-    alternative_longitude_names = ['lon', 'longitude', 'LON', 'LONGITUDE', 'XLONG', 'LONG']
-    alternative_time_names = ['TIME', 'Time']
+    config = get_config()
+    latitude_name = config["data_vars"]['lat_coord_name']
+    longitude_name = config["data_vars"]['lon_coord_name']
+    time_name = config["data_vars"]['t_dim_name']
 
     # Loop through coordinates in the dataset and rename them if they match any of the alternative names
-    for coord in data.coords:
-
-        if coord in alternative_latitude_names:
-            data = data.assign_coords({'lat': data.coords[coord] }).drop_vars(coord)
-        elif coord in alternative_longitude_names:
-            data = data.assign_coords({'long': data.coords[coord] }).drop_vars(coord)
-        elif coord in alternative_time_names:
-            data = data.rename({coord: 'time'})
+    if not latitude_name == 'lat':
+        data = data.rename_vars({latitude_name: 'lat'})
+    if not longitude_name == 'long':
+        data = data.rename_vars({longitude_name: 'long'})
+    if not time_name == 'time':
+        data = data.rename_vars({time_name: 'time'})
 
     return data
 
