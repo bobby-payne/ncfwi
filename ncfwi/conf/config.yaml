@@ -1,17 +1,18 @@
 settings:
 
-  start_year: 2001
-  end_year: 2014
-  crop_x_index: [140,268]
-  crop_y_index: [128,256]
+  start_year: 1990
+  end_year: 2020
+  crop_x_index: [116,276]
+  crop_y_index: [40,200]
+  convert_lon_to_centered: true  # set to true if your data's longitude range is [0, 360)
   overwinter: true
   chunks: "auto"
   parallel: true
   n_cpu_cores: 19
-  path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
-  output_dir: "/users/rpayne/FWI_test"
+  path_to_cffdrs-ng: "/path/to/cffdrs-ng"
+  output_dir: "/path/to/output"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
-  output_in_batches: true
+  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file anyways)
 
 calculation_parameters:
 
@@ -29,34 +30,36 @@ calculation_parameters:
 data_vars:
 
   t_dim_name: "time"
-  x_dim_name: "rlon"
-  y_dim_name: "rlat"
+  x_dim_name: "longitude"
+  y_dim_name: "latitude"
+  lon_coord_name: "longitude"
+  lat_coord_name: "latitude"
 
   wind_speed:
 
-    alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10']
-    description: "Wind speed at 10 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/WS10/*.nc"
-    transform: null
+    alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10','sfcWind','SFCWIND']
+    description: "Wind speed in km/h"
+    path: "/path/to/winds.nc"
+    transform: "x * 3.6"  # can use transform to convert units from m/s to km/h
 
   air_temperature:
 
-    alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS']
-    description: "Air temperature at 2 meters above ground level"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/T2/*.nc"
+    alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS', 'tas']
+    description: "Air temperature in °C"
+    path: "/path/to/air_temperature.nc"
     transform: "x - 273.15"
 
   relative_humidity:
 
     alternative_names: ["RH", "RH2", "relative_humidity_2m", "RH2M", "rh", "rh2"]
-    description: "Relative humidity at 2 meters above ground level"
-    path: "/users/rpayne/data/unproc/WRF/ctl/RH/*.nc"
+    description: "Relative humidity in % (0-100)"
+    path: "/path/to/relative_humidity.nc"
     transform: null
 
   precipitation:
 
     alternative_names: ["Precip", "Pr", "total_precipitation", "PREC", "prec", "pr", "rainfall", "Rainfall"]
-    description: "Total accumulated precipitation over the past hour"
-    path: "/net/venus/kenes/downloaded-data/acannon/USask-WRF-WCA/ctl-wrf-wca/PREC/*.nc"
-    transform: null
+    description: "Total accumulated precipitation over the past hour in mm"
+    path: "/path/to/precip_accum.nc"
+    transform: "x * 1000"
 
