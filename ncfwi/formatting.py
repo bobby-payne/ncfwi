@@ -112,10 +112,16 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
-def convert_lon_to_centered(wx_data: xr.Dataset) -> xr.Dataset:
+def convert_longitude_range(wx_data: xr.Dataset, to_centered: bool = True) -> xr.Dataset:
     """
-    Converts the longitude coordinate from the [0,360) convention
-    to the [-180,180) convention, required for timezone retrieval.
+    Converts longitude range between [0,360) and [-180,180) or vice versa.
+    
+    If "to_centered=True", converts the longitude coordinate from the [0,360) convention
+    to the [-180,180) convention, required for timezone retrieval
+    and by the cffdrs FWI calculation function.
+
+    If "to_centered=False", converts the longitude coordinate from the [-180,180) convention
+    to the [0,360) convention.
 
     Parameters
     ----------
@@ -128,9 +134,14 @@ def convert_lon_to_centered(wx_data: xr.Dataset) -> xr.Dataset:
         The dataset containing the [-180,180) longitude coordinate.
     """
 
-    wx_data = wx_data.assign_coords({
-        'long': (((wx_data['long'] + 180.) % 360.) - 180.)
-    })
+    if to_centered:
+        wx_data = wx_data.assign_coords({
+            'long': (((wx_data['long'] + 180.) % 360.) - 180.)
+        })
+    else:
+        wx_data = wx_data.assign_coords({
+            'long': (wx_data['long'] % 360.)
+        })
 
     return wx_data
 

@@ -57,7 +57,7 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
     wx_data = rename_wx_variables(wx_data)
     wx_data = apply_spatial_crop(wx_data)
     if not is_longitude_centered:
-        wx_data = convert_lon_to_centered(wx_data)
+        wx_data = convert_longitude_range(wx_data, to_centered=True)
 
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
         wx_data = wx_data.isel({time_dim_name: slice(0, 0)})
