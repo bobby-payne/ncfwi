@@ -127,6 +127,10 @@ def convert_longitude_range(wx_data: xr.Dataset, to_centered: bool = True) -> xr
     ----------
     data : xr.Dataset
         The dataset containing the [0,360) longitude coordinate.
+    to_centered : bool, optional
+        If True, convert from [0,360) to [-180,180).
+        If False, convert from [-180,180) to [0,360).
+        Default is True
 
     Returns
     -------
