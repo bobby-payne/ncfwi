@@ -1,9 +1,12 @@
 import sys
+import subprocess
+import os
 import gc
 import xarray as xr
 import numpy as np
 import pytz
 import time
+from time import sleep
 from datetime import datetime
 from timezonefinder import TimezoneFinder
 from joblib import Parallel, delayed
@@ -16,6 +19,8 @@ from readwrite import *
 from season import *
 from overwinter import *
 from config import get_config
+
+from dask.distributed import Client
 
 
 def preprocess_data(wx_data) -> xr.Dataset:
@@ -121,8 +126,18 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     if overwinter and not (year == start_year):
 
         lastyear_DC = xr.open_dataset(output_dir + f"/DC/{year-1}.nc")
-        lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
-        nan_mask = ~np.isnan(lastyear_DC['DC'])  # mask out NaN values of DC
+
+        # select the DC time series for the current grid point
+        try:
+            lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
+        except KeyError:
+            print(f"Coordinates {x}, {y} not found in last year DC dataset.")
+            lastyear_DC = xr.Dataset()
+
+        # mask out the NaN values of DC
+        nan_mask = ~np.isnan(lastyear_DC['DC'])
+
+        # if there is at least one non-NaN value of DC, proceed with overwintering
         if nan_mask.any():
             lastyear_DC = lastyear_DC.where(nan_mask, drop=True)
             lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
@@ -208,6 +223,18 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 if __name__ == "__main__":
 
     start_time = time.time()
+    client = Client(n_workers=22, threads_per_worker=1, memory_limit="2.5GB")
+    # print(client.dashboard_link)
+
+    try:
+        subprocess.run(
+            "rm -r /users/rpayne/FWI_test/*",
+            shell=True,
+            check=True
+        )
+    except Exception as e:
+        print(f"Warning: {e}")
+        pass
 
     # Open and read config
     print("Getting ready...")
@@ -215,6 +242,7 @@ if __name__ == "__main__":
     t_dim_name = config["data_vars"]["t_dim_name"]
     x_dim_name = config["data_vars"]["x_dim_name"]
     y_dim_name = config["data_vars"]["y_dim_name"]
+    is_longitude_centered = config["settings"]["is_longitude_centered"]
     crop_x_index = config["settings"]["crop_x_index"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
@@ -234,12 +262,16 @@ if __name__ == "__main__":
     for year in time_range:
 
         # Load data for the current year into memory
-        print(f"Loading data for year {year} into memory...")
-        with ProgressBar():
-            wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        if year == 2000:
+            wx_data_i = xr.open_dataset("/users/rpayne/debug_2000.nc")
+            print(wx_data_i)
+            sleep(200)
+        else:
+            print(f"Loading data for year {year} into memory...")
+            with ProgressBar():
+                wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
 
-        print("Transpose dims and apply transformations...")
-        wx_data_i = transpose_dims(wx_data_i)
+        print("Applying transformations to data...")
         wx_data_i = apply_transformations(wx_data_i)
 
         print("Computing indices...")
@@ -247,6 +279,7 @@ if __name__ == "__main__":
 
             coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
                                              wx_data_i[y_dim_name].values))
+            
             with Parallel(n_jobs=n_cores) as joblib_parallel:
                 FWIs_list = joblib_parallel(
                     delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
@@ -260,15 +293,17 @@ if __name__ == "__main__":
                 for y in wx_data_i[y_dim_name].values:
 
                     FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
+                    if not is_longitude_centered: # convert back to original lon range
+                        FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
                     FWIs_list.append(FWIs_at_xy)
 
         if save_in_batches:
 
-            batch_size = (crop_x_index[1] - crop_x_index[0]) * 20
+            batch_size = (crop_x_index[1] - crop_x_index[0]) * 20  # estimate a good batch size
             for i in tqdm(range(0, len(FWIs_list), batch_size)):
                 batch = FWIs_list[i:i + batch_size]
                 FWIs_batch_dataset = xr.combine_by_coords(batch)
-                print(f"Saving batch {i+1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
+                print(f"Saving batch {i // batch_size + 1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
                 save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
             combine_batched_files(year)
 

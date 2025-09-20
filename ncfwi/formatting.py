@@ -138,13 +138,15 @@ def convert_longitude_range(wx_data: xr.Dataset, to_centered: bool = True) -> xr
         The dataset containing the [-180,180) longitude coordinate.
     """
 
+    config = get_config()
+    longitude_name = config["data_vars"]['lon_coord_name']
     if to_centered:
         wx_data = wx_data.assign_coords({
-            'long': (((wx_data['long'] + 180.) % 360.) - 180.)
+            longitude_name: (((wx_data[longitude_name] + 180.) % 360.) - 180.)
         })
     else:
         wx_data = wx_data.assign_coords({
-            'long': (wx_data['long'] % 360.)
+            longitude_name: (wx_data[longitude_name] % 360.)
         })
 
     return wx_data

@@ -1,3 +1,4 @@
+from time import sleep
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -53,8 +54,7 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
     is_longitude_centered = config["settings"]["is_longitude_centered"]
     data_timerange = pd.to_datetime(wx_data[time_dim_name].values)
 
-    wx_data = rename_coordinates(wx_data)
-    wx_data = rename_wx_variables(wx_data)
+    # Apply cropping and longitude conversion if needed
     wx_data = apply_spatial_crop(wx_data)
     if not is_longitude_centered:
         wx_data = convert_longitude_range(wx_data, to_centered=True)
@@ -65,6 +65,11 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
         wx_data = wx_data.sel({
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
+
+    # rename coordinates and variables, and transpose so that time dim is always first
+    wx_data = rename_coordinates(wx_data)
+    wx_data = rename_wx_variables(wx_data)
+    wx_data = transpose_dims(wx_data)
 
     return wx_data
 
@@ -112,6 +117,8 @@ def load_wx_data() -> xr.Dataset:
     # Merge into an xarray.Dataset
     wx_data_xarray = xr.merge(wx_data.values(), join="inner")
 
+    # when we spatial cropped the dims, the dims are reset so they start at zero
+    # (e.g., if we cropped to 150:200, the dim now goes from 0 to 50)
     # Add spatial dimensions as coordinates, provided they aren't already one
     # otherwise no way of keeping track of coords like rlat and rlon in WRF
     for dim in wx_data_xarray.dims:

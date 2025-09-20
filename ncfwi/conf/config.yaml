@@ -1,18 +1,18 @@
 settings:
 
-  start_year: 1990
-  end_year: 2020
-  crop_x_index: [116,276]
-  crop_y_index: [40,200]
-  is_longitude_centered: false  # set to false if your data's longitude range is [0, 360), true if [-180, 180)
+  start_year: 2000
+  end_year: 2001
+  crop_x_index: [225,250]
+  crop_y_index: [150,175]
+  is_longitude_centered: false
   overwinter: true
   chunks: "auto"
   parallel: true
   n_cpu_cores: 19
-  path_to_cffdrs-ng: "/path/to/cffdrs-ng"
-  output_dir: "/path/to/output"
+  path_to_cffdrs-ng: "/users/rpayne/cffdrs-ng"
+  output_dir: "/users/rpayne/FWI_test"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
-  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file anyways)
+  output_in_batches: true
 
 calculation_parameters:
 
@@ -38,28 +38,28 @@ data_vars:
   wind_speed:
 
     alternative_names: ['WS10', 'WindSpeed', 'WindSpeed10m','WS','ws','ws10','sfcWind','SFCWIND']
-    description: "Wind speed in km/h"
-    path: "/path/to/winds.nc"
-    transform: "x * 3.6"  # can use transform to convert units from m/s to km/h
+    description: "Wind speed at 10 meters above ground level (in km/hr)"
+    path: "/users/rpayne/data/unproc/ERA5/SFCWIND/sfcWind_200001_200112.nc"
+    transform: "x * 3.6"
 
   air_temperature:
 
     alternative_names: ['T2', 'Temperature', 'T', 'Temp', 'temp', 'temperature', 'air_temperature', 'TAS', 'tas']
-    description: "Air temperature in °C"
-    path: "/path/to/air_temperature.nc"
+    description: "Air temperature at 2 meters above ground level (in °C)"
+    path: "/users/rpayne/data/unproc/ERA5/TAS/tas_200001_200112.nc"
     transform: "x - 273.15"
 
   relative_humidity:
 
     alternative_names: ["RH", "RH2", "relative_humidity_2m", "RH2M", "rh", "rh2"]
-    description: "Relative humidity in % (0-100)"
-    path: "/path/to/relative_humidity.nc"
+    description: "Relative humidity at 2 meters above ground level (in %, 0-100)"
+    path: "/users/rpayne/data/unproc/ERA5/RH/merged/RH_200001_200112.nc"
     transform: null
 
   precipitation:
 
     alternative_names: ["Precip", "Pr", "total_precipitation", "PREC", "prec", "pr", "rainfall", "Rainfall"]
-    description: "Total accumulated precipitation over the past hour in mm"
-    path: "/path/to/precip_accum.nc"
+    description: "Total accumulated precipitation over the past hour (in mm)"
+    path: "/users/rpayne/data/unproc/ERA5/PREC/merged/PREC_200001_200112.nc"
     transform: "x * 1000"
 
