@@ -1,18 +1,16 @@
 settings:
 
-  start_year: 1990
-  end_year: 2020
-  crop_x_index: [116,276]
-  crop_y_index: [40,200]
-  convert_lon_to_centered: true  # set to true if your data's longitude range is [0, 360)
+  start_year: 2000
+  end_year: 2010
+  is_longitude_centered: false # true if your data's longitude range is [-180, 180)
   overwinter: true
-  chunks: "auto"
+  time_chunks: "auto"
   parallel: true
   n_cpu_cores: 19
   path_to_cffdrs-ng: "/path/to/cffdrs-ng"
   output_dir: "/path/to/output"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
-  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file anyways)
+  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file regardless)
 
 calculation_parameters:
 
@@ -62,4 +60,3 @@ data_vars:
     description: "Total accumulated precipitation over the past hour in mm"
     path: "/path/to/precip_accum.nc"
     transform: "x * 1000"
-

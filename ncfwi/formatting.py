@@ -112,15 +112,25 @@ def rename_coordinates(data: xr.Dataset) -> xr.Dataset:
     return data
 
 
-def convert_lon_to_centered(wx_data: xr.Dataset) -> xr.Dataset:
+def convert_longitude_range(wx_data: xr.Dataset, to_centered: bool = True) -> xr.Dataset:
     """
-    Converts the longitude coordinate from the [0,360) convention
-    to the [-180,180) convention, required for timezone retrieval.
+    Converts longitude range between [0,360) and [-180,180) or vice versa.
+    
+    If "to_centered=True", converts the longitude coordinate from the [0,360) convention
+    to the [-180,180) convention, required for timezone retrieval
+    and by the cffdrs FWI calculation function.
+
+    If "to_centered=False", converts the longitude coordinate from the [-180,180) convention
+    to the [0,360) convention.
 
     Parameters
     ----------
     data : xr.Dataset
         The dataset containing the [0,360) longitude coordinate.
+    to_centered : bool, optional
+        If True, convert from [0,360) to [-180,180).
+        If False, convert from [-180,180) to [0,360).
+        Default is True
 
     Returns
     -------
@@ -128,46 +138,16 @@ def convert_lon_to_centered(wx_data: xr.Dataset) -> xr.Dataset:
         The dataset containing the [-180,180) longitude coordinate.
     """
 
-    wx_data = wx_data.assign_coords({
-        'long': (((wx_data['long'] + 180.) % 360.) - 180.)
-    })
-
-    return wx_data
-
-
-def apply_spatial_crop(wx_data: xr.Dataset) -> xr.Dataset:
-    """
-    Select a specific region by indexing the x and y dimensions
-    as given by the user in the config.
-
-    Parameters
-    ----------
-    wx_data : xarray.Dataset
-        The dataset containing the weather variables.
-
-    Returns
-    -------
-    xarray.Dataset
-        The dataset with spatial indexing applied.
-    """
-
     config = get_config()
-    x_dim = config["data_vars"]["x_dim_name"]
-    y_dim = config["data_vars"]["y_dim_name"]
-
-    crop_x_index = config["settings"]["crop_x_index"]
-    if crop_x_index:
-        x0, x1 = crop_x_index
-        wx_data = wx_data.isel(
-            {x_dim: slice(x0, x1)}
-        )
-    
-    crop_y_index = config["settings"]["crop_y_index"]
-    if crop_y_index:
-        y0, y1 = crop_y_index
-        wx_data = wx_data.isel(
-            {y_dim: slice(y0, y1)}
-        )
+    longitude_name = config["data_vars"]['lon_coord_name']
+    if to_centered:
+        wx_data = wx_data.assign_coords({
+            longitude_name: (((wx_data[longitude_name] + 180.) % 360.) - 180.)
+        })
+    else:
+        wx_data = wx_data.assign_coords({
+            longitude_name: (wx_data[longitude_name] % 360.)
+        })
 
     return wx_data
 

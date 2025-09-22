@@ -1,3 +1,4 @@
+from time import sleep
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -50,21 +51,24 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
     time_dim_name = config["data_vars"]["t_dim_name"]
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
-    convert_lon = config["settings"]["convert_lon_to_centered"]
+    is_longitude_centered = config["settings"]["is_longitude_centered"]
     data_timerange = pd.to_datetime(wx_data[time_dim_name].values)
 
-    wx_data = rename_coordinates(wx_data)
-    wx_data = rename_wx_variables(wx_data)
-    wx_data = apply_spatial_crop(wx_data)
-    if convert_lon:
-        wx_data = convert_lon_to_centered(wx_data)
-
+    # Apply longitude conversion if needed, and crop time range
+    # so that the datasets for each var can be merged
+    if not is_longitude_centered:
+        wx_data = convert_longitude_range(wx_data, to_centered=True)
     if not any((start_year <= t.year <= end_year) for t in data_timerange):
         wx_data = wx_data.isel({time_dim_name: slice(0, 0)})
     else:
         wx_data = wx_data.sel({
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
+
+    # rename coordinates and variables, and transpose so that time dim is always first
+    wx_data = rename_coordinates(wx_data)
+    wx_data = rename_wx_variables(wx_data)
+    wx_data = transpose_dims(wx_data)
 
     return wx_data
 
@@ -88,11 +92,8 @@ def load_wx_data() -> xr.Dataset:
     """
 
     # Get paths (as strings) to data
-    config = get_config()
-    x_dim_name = config["data_vars"]["x_dim_name"]
-    y_dim_name = config["data_vars"]["y_dim_name"]
-    x0, x1 = config["settings"]["crop_x_index"]
-    y0, y1 = config["settings"]["crop_y_index"]
+    t_dim_name = get_config()["data_vars"]["t_dim_name"]
+    t_chunks = get_config()["settings"]["time_chunks"]
     wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
@@ -105,20 +106,12 @@ def load_wx_data() -> xr.Dataset:
             path,
             preprocess=preprocess_data,
             combine="nested",
-            concat_dim=get_config()["data_vars"]["t_dim_name"],
-            chunks={get_config()["data_vars"]["t_dim_name"]: 4380},
+            concat_dim=t_dim_name,
+            chunks={t_dim_name: t_chunks},
             )
 
     # Merge into an xarray.Dataset
     wx_data_xarray = xr.merge(wx_data.values(), join="inner")
-
-    # Add spatial dimensions as coordinates, provided they aren't already one
-    # otherwise no way of keeping track of coords like rlat and rlon in WRF
-    for dim in wx_data_xarray.dims:
-        if (dim not in wx_data_xarray.coords) and (dim == x_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(x0, x1)})
-        elif (dim not in wx_data_xarray.coords) and (dim == y_dim_name):
-            wx_data_xarray = wx_data_xarray.assign_coords({dim: np.arange(y0, y1)})
 
     return wx_data_xarray
 
@@ -157,9 +150,9 @@ def save_to_netcdf(dataset: xr.Dataset, year: int, file_suffix: str | None = Non
         var_data.to_netcdf(os.path.join(output_dir, f"{year}{file_suffix}.nc"))
 
 
-def combine_batched_files(year: int) -> None:
+def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None:
     """
-    Combines batched netCDF files into a single file for each variable.
+    Combines and saves batched netCDF files into a single file for each variable.
     The files are expected to be in the output directory specified in the config.
 
     Parameters
@@ -167,6 +160,8 @@ def combine_batched_files(year: int) -> None:
     year : int
         The year for which the files are to be combined.
         The files should be named in the format "{year}_{batch#}.nc".
+    drop_vars : list of str
+        List of variable names to drop from the final combined dataset.
     """
 
     config = get_config()
@@ -178,6 +173,8 @@ def combine_batched_files(year: int) -> None:
         var_path = os.path.join(path_out, str(var_name))
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
         dataset = xr.open_mfdataset(files, combine="by_coords")
+        if drop_vars is not None:
+            dataset = dataset.drop_vars(drop_vars, errors="ignore")
         dataset.to_netcdf(os.path.join(var_path, f"{year}.nc"))
         for f in files:  # Remove the individual batch files
             os.remove(f)
