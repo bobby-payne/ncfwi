@@ -22,17 +22,19 @@ Edit `conf/config.yaml` with the relevant information for computing the FWIs fro
 your_output_directory/
 ├── FWI/
 |    ├── 2001.nc
-|    └── 2002.nc 
+|    ├── 2002.nc
+|    └── ⋮
 ├── ISI/
 |    ├── 2001.nc
-|    └── 2002.nc     
-└── BUI/
-     ├── 2001.nc
-     └── 2002.nc     
+|    ├── 2002.nc
+|    └── ⋮   
+├── BUI/
+|    ├── 2001.nc
+|    ├── 2002.nc
+|    └── ⋮
+⋮
 ```
-You can specify which indices and/or weather variables you would like returned in the output, including the fire season mask, and the years over which they are computed. A full list of suitable output variables are listed in `available_outputs.txt`.
-
-### Overwintering: Coming Soon!
+You can specify which indices and/or weather variables you would like returned in the output, including the fire season mask. A full list of suitable output variables are listed in `available_outputs.txt`. Note that the variables MASK and PFS_PREC **must** be saved in order for overwintering to work.
 
 ## Feedback and Bug Reports
-If you have any suggestions or wish to report a bug, please feel free to contribute by [creating an issue](https://github.com/bobby-payne/ncfwi/issues). I'm far from being a programming expert, so I'm sure there are many potential improvements to be made.
+If you have any suggestions or wish to report a bug, please feel free to contribute by [creating an issue](https://github.com/bobby-payne/ncfwi/issues).
