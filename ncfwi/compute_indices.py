@@ -233,7 +233,6 @@ if __name__ == "__main__":
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
-    save_in_batches = config["settings"]["output_in_batches"]
     time_range = np.arange(start_year, end_year + 1)
     if path_to_cffdrs_ng not in sys.path:
         sys.path.append(path_to_cffdrs_ng)

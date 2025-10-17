@@ -6,11 +6,10 @@ settings:
   overwinter: true
   time_chunks: "auto"
   parallel: true
-  n_cpu_cores: 19
+  n_cpu_cores: 4
   path_to_cffdrs-ng: "/path/to/cffdrs-ng"
   output_dir: "/path/to/output"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
-  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file regardless)
 
 calculation_parameters:
 
