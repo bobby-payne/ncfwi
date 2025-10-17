@@ -233,14 +233,10 @@ if __name__ == "__main__":
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
-    save_in_batches = config["settings"]["output_in_batches"]
     time_range = np.arange(start_year, end_year + 1)
     if path_to_cffdrs_ng not in sys.path:
         sys.path.append(path_to_cffdrs_ng)
     from NG_FWI import hFWI
-
-    client = Client(n_workers=n_cores, threads_per_worker=2)
-    print("Dask dashboard at", client.dashboard_link)
 
     # Load (lazily) data
     wx_data = load_wx_data()
@@ -281,25 +277,15 @@ if __name__ == "__main__":
                         FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
                     FWIs_list.append(FWIs_at_xy)
 
-        if save_in_batches:
-
-            batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
-            for i in tqdm(range(0, len(FWIs_list), batch_size)):
-                batch = FWIs_list[i:i + batch_size]
-                FWIs_batch_dataset = xr.combine_by_coords(batch)
-                print(f"Saving batch {i // batch_size + 1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
-                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
-            print("Consolidating batches into one file...")
-            combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
-
-        else:
-
-            print("Combining data... (may take a while)")
-            FWIs_dataset = xr.combine_by_coords(FWIs_list)
-            FWIs_dataset = FWIs_dataset.drop_vars([x_dim_name, y_dim_name])
-
-            print(f"Saving FWI data for year {year} of size {FWIs_dataset.nbytes / 1e6:.2f} MB...")
-            save_to_netcdf(FWIs_dataset, year=year)
+        # save batches
+        batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
+        for i in tqdm(range(0, len(FWIs_list), batch_size)):
+            batch = FWIs_list[i:i + batch_size]
+            FWIs_batch_dataset = xr.combine_by_coords(batch)
+            print(f"Saving batch {i // batch_size + 1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
+            save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
+        print("Consolidating batches into one file...")
+        combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
 
         gc.collect()
 
