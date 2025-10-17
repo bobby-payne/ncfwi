@@ -172,7 +172,7 @@ def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None
     for var_name in output_vars:
         var_path = os.path.join(path_out, str(var_name))
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
-        dataset = xr.open_mfdataset(files, combine="by_coords")
+        dataset = xr.open_mfdataset(files, combine="nested",)
         if drop_vars is not None:
             dataset = dataset.drop_vars(drop_vars, errors="ignore")
         dataset.to_netcdf(os.path.join(var_path, f"{year}.nc"))

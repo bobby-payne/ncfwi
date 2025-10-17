@@ -233,6 +233,7 @@ if __name__ == "__main__":
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
+    save_in_batches = config["settings"]["output_in_batches"]
     time_range = np.arange(start_year, end_year + 1)
     if path_to_cffdrs_ng not in sys.path:
         sys.path.append(path_to_cffdrs_ng)
@@ -240,54 +241,61 @@ if __name__ == "__main__":
 
     # Load (lazily) data
     wx_data = load_wx_data()
+    N_batches = 4
 
     # Main computation loop
     for year in time_range:
 
-        # Load data for the current year into memory
-        print(f"Loading data for year {year} into memory...")
-        with ProgressBar():
-            wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        # Loop over each batch
+        for j in range(N_batches):
 
-        print("Applying transformations to data...")
-        wx_data_i = apply_transformations(wx_data_i)
+            # Load data for the current year and batch into memory
+            print(f"Loading data for year {year}, batch {j + 1}/{N_batches} into memory...")
+            start = j * (len(wx_data[x_dim_name]) // N_batches)
+            end = (j + 1) * (len(wx_data[x_dim_name]) // N_batches) if j < N_batches - 1 else len(wx_data[x_dim_name])
+            wx_data_i = wx_data.sel({t_dim_name: str(year)}).isel({x_dim_name: slice(start, end)})
+            with ProgressBar():
+                wx_data_i = wx_data_i.compute()
 
-        print("Computing indices...")
-        if parallel:  # Compute the FWIs at each grid point in parallel
+            print("Applying transformations to data...")
+            wx_data_i = apply_transformations(wx_data_i)
 
-            coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
-                                             wx_data_i[y_dim_name].values))
-            
-            with Parallel(n_jobs=n_cores) as joblib_parallel:
-                FWIs_list = joblib_parallel(
-                    delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
-                    for loc_index in tqdm(coordinate_tuples)
-                )
+            print("Computing indices...")
+            if parallel:  # Compute the FWIs at each grid point in parallel
 
-        else:  # Compute the FWIs at grid point by grid point in series
+                coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
+                                                wx_data_i[y_dim_name].values))
+                
+                with Parallel(n_jobs=n_cores) as joblib_parallel:
+                    FWIs_list = joblib_parallel(
+                        delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
+                        for loc_index in tqdm(coordinate_tuples)
+                    )
 
-            FWIs_list = []
-            x_list, y_list = wx_data_i[x_dim_name].values, wx_data_i[y_dim_name].values
-            for x in x_list:
-                for y in y_list:
+            else:  # Compute the FWIs at grid point by grid point in series
 
-                    print(f"Computing FWI at grid point (x={x}, y={y})...")
-                    FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
-                    if not is_longitude_centered: # convert back to original lon range
-                        FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
-                    FWIs_list.append(FWIs_at_xy)
+                FWIs_list = []
+                x_list, y_list = wx_data_i[x_dim_name].values, wx_data_i[y_dim_name].values
+                for x in x_list:
+                    for y in y_list:
 
-        # save batches
-        batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
-        for i in tqdm(range(0, len(FWIs_list), batch_size)):
-            batch = FWIs_list[i:i + batch_size]
-            FWIs_batch_dataset = xr.combine_by_coords(batch)
-            print(f"Saving batch {i // batch_size + 1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
-            save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
+                        print(f"Computing FWI at grid point (x={x}, y={y})...")
+                        FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
+                        if not is_longitude_centered: # convert back to original lon range
+                            FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
+                        FWIs_list.append(FWIs_at_xy)
+
+            # save batch in sub-batches
+            # TODO: sub-batching may be unnecessary provided N_batches is large enough
+            sub_batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
+            for i in tqdm(range(0, len(FWIs_list), sub_batch_size)):
+                batch = FWIs_list[i:i + sub_batch_size]
+                FWIs_batch_dataset = xr.combine_by_coords(batch)
+                print(f"Batch {j+1}: Saving sub-batch {i // sub_batch_size + 1}/{len(FWIs_list) // sub_batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
+                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{j}_{i // sub_batch_size + 1}")
+
         print("Consolidating batches into one file...")
         combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
-
-        gc.collect()
 
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)
