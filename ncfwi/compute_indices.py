@@ -239,7 +239,7 @@ if __name__ == "__main__":
         sys.path.append(path_to_cffdrs_ng)
     from NG_FWI import hFWI
 
-    client = Client(n_workers=n_cores, threads_per_worker=1, memory_limit="2.5GB")
+    client = Client(n_workers=n_cores, threads_per_worker=2)
     print("Dask dashboard at", client.dashboard_link)
 
     # Load (lazily) data
