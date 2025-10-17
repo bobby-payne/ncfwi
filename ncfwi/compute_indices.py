@@ -243,6 +243,13 @@ if __name__ == "__main__":
     wx_data = load_wx_data()
     N_batches = 4
 
+    # Assign spatial dimensions as coordinates if they are not already
+    # (Needed for combining by coords later on)
+    if x_dim_name not in wx_data.coords:
+        wx_data = wx_data.assign_coords({x_dim_name: wx_data[x_dim_name]})
+    if y_dim_name not in wx_data.coords:
+        wx_data = wx_data.assign_coords({y_dim_name: wx_data[y_dim_name]})
+
     # Main computation loop
     for year in time_range:
 
@@ -251,9 +258,9 @@ if __name__ == "__main__":
 
             # Load data for the current year and batch into memory
             print(f"Loading data for year {year}, batch {j + 1}/{N_batches} into memory...")
-            start = j * (len(wx_data[x_dim_name]) // N_batches)
-            end = (j + 1) * (len(wx_data[x_dim_name]) // N_batches) if j < N_batches - 1 else len(wx_data[x_dim_name])
-            wx_data_i = wx_data.sel({t_dim_name: str(year)}).isel({x_dim_name: slice(start, end)})
+            idx_start = j * (len(wx_data[x_dim_name]) // N_batches)
+            idx_end = (j + 1) * (len(wx_data[x_dim_name]) // N_batches) if j < N_batches - 1 else len(wx_data[x_dim_name])
+            wx_data_i = wx_data.sel({t_dim_name: str(year)}).isel({x_dim_name: slice(idx_start, idx_end)})
             with ProgressBar():
                 wx_data_i = wx_data_i.compute()
 
@@ -264,8 +271,8 @@ if __name__ == "__main__":
             if parallel:  # Compute the FWIs at each grid point in parallel
 
                 coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
-                                                wx_data_i[y_dim_name].values))
-                
+                                                 wx_data_i[y_dim_name].values))
+              
                 with Parallel(n_jobs=n_cores) as joblib_parallel:
                     FWIs_list = joblib_parallel(
                         delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
@@ -292,7 +299,7 @@ if __name__ == "__main__":
                 batch = FWIs_list[i:i + sub_batch_size]
                 FWIs_batch_dataset = xr.combine_by_coords(batch)
                 print(f"Batch {j+1}: Saving sub-batch {i // sub_batch_size + 1}/{len(FWIs_list) // sub_batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
-                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{j}_{i // sub_batch_size + 1}")
+                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_b{j + 1}sb{i // sub_batch_size + 1}")
 
         print("Consolidating batches into one file...")
         combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
