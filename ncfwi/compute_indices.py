@@ -17,8 +17,6 @@ from season import *
 from overwinter import *
 from config import get_config
 
-from dask.distributed import Client
-
 
 def preprocess_data(wx_data) -> xr.Dataset:
     """
@@ -126,7 +124,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
         # select the DC time series for the current grid point
         try:
-            lastyear_DC = lastyear_DC.isel({x_dim_name: [x], y_dim_name: [y]})
+            lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
         except KeyError:
             print(f"Coordinates {x}, {y} not found in last year DC dataset.")
             lastyear_DC = xr.Dataset()
@@ -140,7 +138,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
 
             lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
-            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.isel({x_dim_name: [x], y_dim_name: [y]})
+            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
             lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
 
             thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
@@ -231,6 +229,7 @@ if __name__ == "__main__":
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
+    N_batches = config["settings"]["n_batches"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
     time_range = np.arange(start_year, end_year + 1)
@@ -240,7 +239,6 @@ if __name__ == "__main__":
 
     # Load (lazily) data
     wx_data = load_wx_data()
-    N_batches = 4
 
     # Assign spatial dimensions as coordinates if they are not already
     # (Needed for combining by coords later on)
@@ -248,6 +246,9 @@ if __name__ == "__main__":
         wx_data = wx_data.assign_coords({x_dim_name: wx_data[x_dim_name]})
     if y_dim_name not in wx_data.coords:
         wx_data = wx_data.assign_coords({y_dim_name: wx_data[y_dim_name]})
+
+    # Select subdomain
+    wx_data = apply_spatial_crop(wx_data)
 
     # Main computation loop
     for year in time_range:
@@ -271,7 +272,7 @@ if __name__ == "__main__":
 
                 coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
                                                  wx_data_i[y_dim_name].values))
-              
+
                 with Parallel(n_jobs=n_cores) as joblib_parallel:
                     FWIs_list = joblib_parallel(
                         delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
@@ -290,6 +291,7 @@ if __name__ == "__main__":
                         if not is_longitude_centered: # convert back to original lon range
                             FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
                         FWIs_list.append(FWIs_at_xy)
+                x_list, y_list = None, None
 
             # save batch in sub-batches
             # TODO: sub-batching may be unnecessary provided N_batches is large enough
@@ -300,8 +302,16 @@ if __name__ == "__main__":
                 print(f"Batch {j+1}: Saving sub-batch {i // sub_batch_size + 1}/{len(FWIs_list) // sub_batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
                 save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_b{j + 1}sb{i // sub_batch_size + 1}")
 
+            # Clean up
+            wx_data_i = None
+            FWIs_list = None
+            coordinate_tuples = None
+            batch = None
+            FWIs_batch_dataset = None
+            gc.collect()
+
         print("Consolidating batches into one file...")
-        combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
+        combine_batched_files(year, drop_vars=None)
 
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)
