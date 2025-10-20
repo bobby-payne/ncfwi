@@ -65,8 +65,8 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
 
-    # rename coordinates and variables, and transpose so that time dim is always first
-    wx_data = rename_coordinates(wx_data)
+    # rename wx variables, and transpose so that time dim is always first
+    # coordinate renaming must be done later (in compute_FWIs_for_grid_point)
     wx_data = rename_wx_variables(wx_data)
     wx_data = transpose_dims(wx_data)
 

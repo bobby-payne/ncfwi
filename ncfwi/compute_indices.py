@@ -101,6 +101,9 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     x, y = loc_index
     wx_data_ixy = wx_data_i.sel({x_dim_name: [x], y_dim_name: [y]})
 
+    # Now we can rename longitude and latitude coordinates to what hFWI expects
+    wx_data_ixy = rename_coordinates(wx_data_ixy)
+
     # Obtain the fire season mask for this year in the form of an np array
     fire_season_mask_ixy = compute_fire_season(
         wx_data_ixy, return_as_xarray=True
