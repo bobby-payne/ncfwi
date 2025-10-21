@@ -17,8 +17,6 @@ from season import *
 from overwinter import *
 from config import get_config
 
-from dask.distributed import Client
-
 
 def preprocess_data(wx_data) -> xr.Dataset:
     """
@@ -103,6 +101,9 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     x, y = loc_index
     wx_data_ixy = wx_data_i.sel({x_dim_name: [x], y_dim_name: [y]})
 
+    # Now we can rename longitude and latitude coordinates to what hFWI expects
+    wx_data_ixy = rename_coordinates(wx_data_ixy)
+
     # Obtain the fire season mask for this year in the form of an np array
     fire_season_mask_ixy = compute_fire_season(
         wx_data_ixy, return_as_xarray=True
@@ -126,7 +127,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
 
         # select the DC time series for the current grid point
         try:
-            lastyear_DC = lastyear_DC.isel({x_dim_name: [x], y_dim_name: [y]})
+            lastyear_DC = lastyear_DC.sel({x_dim_name: [x], y_dim_name: [y]})
         except KeyError:
             print(f"Coordinates {x}, {y} not found in last year DC dataset.")
             lastyear_DC = xr.Dataset()
@@ -140,7 +141,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             lastyear_DC_fin = lastyear_DC['DC'].isel(time=-1).values.squeeze()
 
             lastyear_postfs_precip_accum = xr.open_dataset(output_dir + f"/PFS_PREC/{year-1}.nc")
-            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.isel({x_dim_name: [x], y_dim_name: [y]})
+            lastyear_postfs_precip_accum = lastyear_postfs_precip_accum.sel({x_dim_name: [x], y_dim_name: [y]})
             lastyear_postfs_precip_accum = lastyear_postfs_precip_accum['PFS_PREC'].values.squeeze()
 
             thisyear_prefs_precip_accum = get_prefs_precip_accum_for_grid_point(
@@ -231,77 +232,89 @@ if __name__ == "__main__":
     start_year = config["settings"]["start_year"]
     end_year = config["settings"]["end_year"]
     path_to_cffdrs_ng = config["settings"]["path_to_cffdrs-ng"]
+    N_batches = config["settings"]["n_batches"]
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
-    save_in_batches = config["settings"]["output_in_batches"]
     time_range = np.arange(start_year, end_year + 1)
     if path_to_cffdrs_ng not in sys.path:
         sys.path.append(path_to_cffdrs_ng)
     from NG_FWI import hFWI
 
-    client = Client(n_workers=n_cores, threads_per_worker=1, memory_limit="2.5GB")
-    print("Dask dashboard at", client.dashboard_link)
-
     # Load (lazily) data
     wx_data = load_wx_data()
+
+    # Assign spatial dimensions as coordinates if they are not already
+    # (Needed for combining by coords later on)
+    if x_dim_name not in wx_data.coords:
+        wx_data = wx_data.assign_coords({x_dim_name: wx_data[x_dim_name]})
+    if y_dim_name not in wx_data.coords:
+        wx_data = wx_data.assign_coords({y_dim_name: wx_data[y_dim_name]})
+
+    # Select subdomain
+    wx_data = apply_spatial_crop(wx_data)
 
     # Main computation loop
     for year in time_range:
 
-        # Load data for the current year into memory
-        print(f"Loading data for year {year} into memory...")
-        with ProgressBar():
-            wx_data_i = wx_data.sel({t_dim_name: str(year)}).compute()
+        # Loop over each batch
+        for j in range(N_batches):
 
-        print("Applying transformations to data...")
-        wx_data_i = apply_transformations(wx_data_i)
+            # Load data for the current year and batch into memory
+            print(f"Loading data for year {year}, batch {j + 1}/{N_batches} into memory...")
+            idx_start = j * (len(wx_data[x_dim_name]) // N_batches)
+            idx_end = (j + 1) * (len(wx_data[x_dim_name]) // N_batches) if j < N_batches - 1 else len(wx_data[x_dim_name])
+            wx_data_i = wx_data.sel({t_dim_name: str(year)}).isel({x_dim_name: slice(idx_start, idx_end)})
+            with ProgressBar():
+                wx_data_i = wx_data_i.compute()
 
-        print("Computing indices...")
-        if parallel:  # Compute the FWIs at each grid point in parallel
+            print("Applying transformations to data...")
+            wx_data_i = apply_transformations(wx_data_i)
 
-            coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
-                                             wx_data_i[y_dim_name].values))
-            
-            with Parallel(n_jobs=n_cores) as joblib_parallel:
-                FWIs_list = joblib_parallel(
-                    delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
-                    for loc_index in tqdm(coordinate_tuples)
-                )
+            print("Computing indices...")
+            if parallel:  # Compute the FWIs at each grid point in parallel
 
-        else:  # Compute the FWIs at grid point by grid point in series
+                coordinate_tuples = list(product(wx_data_i[x_dim_name].values,
+                                                 wx_data_i[y_dim_name].values))
 
-            FWIs_list = []
-            x_list, y_list = wx_data_i[x_dim_name].values, wx_data_i[y_dim_name].values
-            for x in x_list:
-                for y in y_list:
+                with Parallel(n_jobs=n_cores) as joblib_parallel:
+                    FWIs_list = joblib_parallel(
+                        delayed(compute_FWIs_for_grid_point)(wx_data_i, loc_index, year)
+                        for loc_index in tqdm(coordinate_tuples)
+                    )
 
-                    print(f"Computing FWI at grid point (x={x}, y={y})...")
-                    FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
-                    if not is_longitude_centered: # convert back to original lon range
-                        FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
-                    FWIs_list.append(FWIs_at_xy)
+            else:  # Compute the FWIs at grid point by grid point in series
 
-        if save_in_batches:
+                FWIs_list = []
+                x_list, y_list = wx_data_i[x_dim_name].values, wx_data_i[y_dim_name].values
+                for x in x_list:
+                    for y in y_list:
 
-            batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
-            for i in tqdm(range(0, len(FWIs_list), batch_size)):
-                batch = FWIs_list[i:i + batch_size]
+                        print(f"Computing FWI at grid point (x={x}, y={y})...")
+                        FWIs_at_xy = compute_FWIs_for_grid_point(wx_data_i, (x, y), year)
+                        if not is_longitude_centered: # convert back to original lon range
+                            FWIs_at_xy = convert_longitude_range(FWIs_at_xy, to_centered=False)
+                        FWIs_list.append(FWIs_at_xy)
+                x_list, y_list = None, None
+
+            # save batch in sub-batches
+            # TODO: sub-batching may be unnecessary provided N_batches is large enough
+            sub_batch_size = len(wx_data_i[x_dim_name].values) * 20  # estimate a good batch size
+            for i in tqdm(range(0, len(FWIs_list), sub_batch_size)):
+                batch = FWIs_list[i:i + sub_batch_size]
                 FWIs_batch_dataset = xr.combine_by_coords(batch)
-                print(f"Saving batch {i // batch_size + 1}/{len(FWIs_list) // batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
-                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_{i // batch_size + 1}")
-            print("Consolidating batches into one file...")
-            combine_batched_files(year, drop_vars=[x_dim_name, y_dim_name])
+                print(f"Batch {j+1}: Saving sub-batch {i // sub_batch_size + 1}/{len(FWIs_list) // sub_batch_size + 1} of size {FWIs_batch_dataset.nbytes / 1e6:.2f} MB")
+                save_to_netcdf(FWIs_batch_dataset, year=year, file_suffix=f"_b{j + 1}sb{i // sub_batch_size + 1}")
 
-        else:
+            # Clean up
+            wx_data_i = None
+            FWIs_list = None
+            coordinate_tuples = None
+            batch = None
+            FWIs_batch_dataset = None
+            gc.collect()
 
-            print("Combining data... (may take a while)")
-            FWIs_dataset = xr.combine_by_coords(FWIs_list)
-            FWIs_dataset = FWIs_dataset.drop_vars([x_dim_name, y_dim_name])
-
-            print(f"Saving FWI data for year {year} of size {FWIs_dataset.nbytes / 1e6:.2f} MB...")
-            save_to_netcdf(FWIs_dataset, year=year)
-
-        gc.collect()
+        print("Consolidating batches into one file...")
+        combine_batched_files(year, drop_vars=None)
 
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)

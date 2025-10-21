@@ -1,4 +1,4 @@
-from time import sleep
+import time
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -65,8 +65,8 @@ def preprocess_data(wx_data: xr.Dataset) -> xr.Dataset:
             time_dim_name: slice(f"{start_year}-01-01", f"{end_year}-12-31")
             })
 
-    # rename coordinates and variables, and transpose so that time dim is always first
-    wx_data = rename_coordinates(wx_data)
+    # rename wx variables, and transpose so that time dim is always first
+    # coordinate renaming must be done later (in compute_FWIs_for_grid_point)
     wx_data = rename_wx_variables(wx_data)
     wx_data = transpose_dims(wx_data)
 
@@ -172,9 +172,12 @@ def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None
     for var_name in output_vars:
         var_path = os.path.join(path_out, str(var_name))
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
-        dataset = xr.open_mfdataset(files, combine="by_coords")
+        dataset = xr.open_mfdataset(files, combine="nested", chunks={})
         if drop_vars is not None:
             dataset = dataset.drop_vars(drop_vars, errors="ignore")
+        dataset = dataset.load() # Load into memory to avoid issues when saving
         dataset.to_netcdf(os.path.join(var_path, f"{year}.nc"))
+        dataset.close()
+        time.sleep(1)  # Ensure file is written before deleting
         for f in files:  # Remove the individual batch files
             os.remove(f)

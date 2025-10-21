@@ -2,15 +2,16 @@ settings:
 
   start_year: 2000
   end_year: 2010
+  crop_x_idx: [null, null]
+  crop_y_idx: [null, null]
   is_longitude_centered: false # true if your data's longitude range is [-180, 180)
   overwinter: true
-  time_chunks: "auto"
+  n_batches: 1
   parallel: true
-  n_cpu_cores: 19
+  n_cpu_cores: 4
   path_to_cffdrs-ng: "/path/to/cffdrs-ng"
   output_dir: "/path/to/output"
   output_vars: ["MASK", "FFMC", "DMC", "DC", "ISI", "BUI", "FWI"]
-  output_in_batches: true  # set to true if your domain is large (the batches will be combined into a single file regardless)
 
 calculation_parameters:
 
