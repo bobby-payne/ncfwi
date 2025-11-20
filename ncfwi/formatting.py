@@ -283,7 +283,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
 
     # Reindex the hFWI dataframe in its time dimension such that
     # there is an entry for every hour of the year (fill_val=nan).
-    hFWI_dataframe = hFWI_dataframe.set_index('timestamp')
+    hFWI_dataframe = hFWI_dataframe.set_index('time')
     year = hFWI_dataframe.index[0].year
     full_index = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
     hFWI_dataframe = hFWI_dataframe.reindex(full_index)
