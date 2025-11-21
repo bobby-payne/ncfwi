@@ -1,4 +1,5 @@
 import sys
+import os
 import gc
 import xarray as xr
 import numpy as np
@@ -236,8 +237,8 @@ if __name__ == "__main__":
     parallel = config["settings"]["parallel"]
     n_cores = config["settings"]["n_cpu_cores"]
     time_range = np.arange(start_year, end_year + 1)
-    if path_to_cffdrs_ng not in sys.path:
-        sys.path.append(path_to_cffdrs_ng)
+    if os.path.join(path_to_cffdrs_ng, 'FWI/Python') not in sys.path:
+        sys.path.append(os.path.join(path_to_cffdrs_ng, 'FWI/Python'))
     from NG_FWI import hFWI
 
     # Load (lazily) data

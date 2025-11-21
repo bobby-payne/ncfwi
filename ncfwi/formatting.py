@@ -283,7 +283,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
 
     # Reindex the hFWI dataframe in its time dimension such that
     # there is an entry for every hour of the year (fill_val=nan).
-    hFWI_dataframe = hFWI_dataframe.set_index('timestamp')
+    hFWI_dataframe = hFWI_dataframe.set_index('time')
     year = hFWI_dataframe.index[0].year
     full_index = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
     hFWI_dataframe = hFWI_dataframe.reindex(full_index)
@@ -333,23 +333,27 @@ def get_empty_hFWI_dataframe(year: int, lat: float, lon: float, utc_offset: floa
     """
 
     colnames_out = [
-        "lat",
+        "time",
+        "ws",
         "long",
+        "lat",
+        "temp",
+        "rh",
+        "prec",
+        "rlon",
+        "rlat",
         "yr",
         "mon",
         "day",
         "hr",
-        "temp",
-        "rh",
-        "ws",
-        "prec",
-        "date",
-        "timestamp",
         "timezone",
+        "grass_fuel_load",
+        "percent_cured",
         "solrad",
         "sunrise",
         "sunset",
         "sunlight_hours",
+        "mcffmc",
         "ffmc",
         "dmc",
         "dc",
@@ -357,25 +361,25 @@ def get_empty_hFWI_dataframe(year: int, lat: float, lon: float, utc_offset: floa
         "bui",
         "fwi",
         "dsr",
+        "mcgfmc_matted",
+        "mcgfmc_standing",
         "gfmc",
         "gsi",
         "gfwi",
-        "mcffmc",
-        "mcgfmc",
-        "percent_cured",
-        "grass_fuel_load",
+        "prec_cumulative",
+        "canopy_drying"
     ]
 
     # Create an empty DataFrame with the specified columns
     empty_df = pd.DataFrame(columns=colnames_out)
 
     # Add a timestamp column for the entire year
-    empty_df['timestamp'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
-    empty_df['date'] = empty_df['timestamp'].dt.date
-    empty_df['yr'] = empty_df['timestamp'].dt.year
-    empty_df['mon'] = empty_df['timestamp'].dt.month
-    empty_df['day'] = empty_df['timestamp'].dt.day
-    empty_df['hr'] = empty_df['timestamp'].dt.hour
+    empty_df['time'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
+    empty_df['date'] = empty_df['time'].dt.date
+    empty_df['yr'] = empty_df['time'].dt.year
+    empty_df['mon'] = empty_df['time'].dt.month
+    empty_df['day'] = empty_df['time'].dt.day
+    empty_df['hr'] = empty_df['time'].dt.hour
     empty_df['lat'] = lat
     empty_df['long'] = lon
     empty_df['timezone'] = utc_offset

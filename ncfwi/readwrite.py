@@ -93,7 +93,6 @@ def load_wx_data() -> xr.Dataset:
 
     # Get paths (as strings) to data
     t_dim_name = get_config()["data_vars"]["t_dim_name"]
-    t_chunks = get_config()["settings"]["time_chunks"]
     wx_data_paths = get_paths_to_wx_data()
     wx_var_names = wx_data_paths.keys()
 
@@ -107,7 +106,6 @@ def load_wx_data() -> xr.Dataset:
             preprocess=preprocess_data,
             combine="nested",
             concat_dim=t_dim_name,
-            chunks={t_dim_name: t_chunks},
             )
 
     # Merge into an xarray.Dataset
