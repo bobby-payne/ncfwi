@@ -374,12 +374,12 @@ def get_empty_hFWI_dataframe(year: int, lat: float, lon: float, utc_offset: floa
     empty_df = pd.DataFrame(columns=colnames_out)
 
     # Add a timestamp column for the entire year
-    empty_df['timestamp'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
-    empty_df['date'] = empty_df['timestamp'].dt.date
-    empty_df['yr'] = empty_df['timestamp'].dt.year
-    empty_df['mon'] = empty_df['timestamp'].dt.month
-    empty_df['day'] = empty_df['timestamp'].dt.day
-    empty_df['hr'] = empty_df['timestamp'].dt.hour
+    empty_df['time'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
+    empty_df['date'] = empty_df['time'].dt.date
+    empty_df['yr'] = empty_df['time'].dt.year
+    empty_df['mon'] = empty_df['time'].dt.month
+    empty_df['day'] = empty_df['time'].dt.day
+    empty_df['hr'] = empty_df['time'].dt.hour
     empty_df['lat'] = lat
     empty_df['long'] = lon
     empty_df['timezone'] = utc_offset
