@@ -165,7 +165,9 @@ def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None
     config = get_config()
     path_out = config["settings"]["output_dir"]
     output_vars = config["settings"]["output_vars"]
-    output_vars = np.append(output_vars, ["PFS_PREC"])
+    overwinter = config["settings"]["overwinter"]
+    if overwinter and "PFS_PREC" not in output_vars:
+        output_vars = np.append(output_vars, ["PFS_PREC"])
 
     for var_name in output_vars:
         var_path = os.path.join(path_out, str(var_name))
