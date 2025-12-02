@@ -36,5 +36,7 @@ your_output_directory/
 ```
 You can specify which indices and/or weather variables you would like returned in the output, including the fire season mask. A full list of suitable output variables are listed in `valid_outputs.txt`. Note that the variable MASK **must** be saved in order for overwintering to work. A variable PFS_PREC (post-fire season precipitation accumulation) is automatically saved if `overwintering` is set to true, and should **not** be included in `output_vars`.
 
+**Important**: Input variables are assumed to be in UTC. However, output variables are given in **local** time! (This behaviour is subject to change in a future update).
+
 ## Feedback and Bug Reports
 If you have any suggestions or wish to report a bug, please feel free to contribute by [creating an issue](https://github.com/bobby-payne/ncfwi/issues).
