@@ -1,3 +1,5 @@
+import logging
+import time
 import xarray as xr
 import pandas as pd
 import numpy as np
@@ -288,10 +290,13 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
     full_index = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
     hFWI_dataframe = hFWI_dataframe.reindex(full_index)
 
+    # print(dataset_coords)
+    # time.sleep(120)
+
     # Select the desired output variables and
     # convert the pandas dataframe to an xarray Dataset
     # Note that mask is handled separately (see below)
-    output_vars_no_mask = [var for var in output_vars if var.lower() != 'mask']
+    output_vars_no_mask = [var for var in output_vars if var.lower() not in ['mask', 'pfs_prec']]
     hFWI_dataset = xr.Dataset(
         {
             var: (
@@ -303,7 +308,7 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
         coords=dataset_coords
     )
 
-    # The season_mask variable is handled differently
+    # The season_mask is handled differently
     if 'MASK' in output_vars:
         season_mask_dataset = xr.Dataset(
             {

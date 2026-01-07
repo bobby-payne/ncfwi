@@ -105,18 +105,23 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     # Now we can rename longitude and latitude coordinates to what hFWI expects
     wx_data_ixy = rename_coordinates(wx_data_ixy)
 
-    # Obtain the fire season mask for this year in the form of an np array
-    fire_season_mask_ixy = compute_fire_season(
-        wx_data_ixy, return_as_xarray=True
-    )['MASK'].values
+    # Get the UTC offset for the current grid point
+    lon = wx_data_ixy["long"].values[0]
+    lat = wx_data_ixy["lat"].values[0]
+    UTC_offset = get_timezone_UTC_offset(lat, lon)
 
-    # convert the wx data to the pandas DataFrame needed for hFWI fn.
+    # hFWI expects local time, so convert time from UTC to local time
+    wx_data_ixy['time'] = wx_data_ixy['time'] + pd.Timedelta(hours=UTC_offset)
+
+    # convert the wx data to the pandas DataFrame expected by hFWI fn.
     wx_dataframe_ixy = xarray_to_pandas_dataframe(wx_data_ixy.squeeze())
 
-    # Get the UTC offset for the current grid point
-    lon = wx_dataframe_ixy["long"].values[0]
-    lat = wx_dataframe_ixy["lat"].values[0]
-    UTC_offset = get_timezone_UTC_offset(lat, lon)
+    # Obtain the fire season mask for this year (as np array)
+    fire_season_mask_ixy = compute_fire_season(
+        wx_data_ixy,
+        return_as_xarray=True,
+        utc_offset=int(UTC_offset),
+    )['MASK'].values
 
     # Apply the fire season mask to the data at this grid point
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
@@ -171,27 +176,37 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             ffmc_old=FFMC_DEFAULT,
             dmc_old=DMC_DEFAULT,
             dc_old=DC_startup,
-            )
+            ) # RETURNS FWIs IN LOCAL TIME STARTING JAN 1 00:00
     else:
         FWI_dataframe_ixy = get_empty_hFWI_dataframe(year, lat, lon, UTC_offset)
 
     # Convert the output pandas dataframe into an xarray Dataset
     # IMPORTANT: The provided time coordinate in dataset_coords must line up
     # with the data that have been MASKED, not the entire year.
+    fwi_t_dim = np.arange(
+        np.datetime64(f"{year}-01-01T00:00"),
+        np.datetime64(f"{year+1}-01-01T00:00"),
+        np.timedelta64(1, "h"),
+    )
     if latitude_name == y_dim_name and longitude_name == x_dim_name:
         dataset_coords = {
-                t_dim_name: wx_dataframe_ixy[t_dim_name].values,  # array of datetimes
+                t_dim_name: fwi_t_dim,  # array of datetimes
                 longitude_name: ([x_dim_name], np.array([lon])),
                 latitude_name: ([y_dim_name], np.array([lat])),
+                # longitude_name: lon[0],
+                # latitude_name: lat[0],
                 }
     else:
         dataset_coords = {
-                t_dim_name: wx_dataframe_ixy[t_dim_name].values,
+                t_dim_name: fwi_t_dim,
                 x_dim_name: [x],      # required for combine_by_coords later on
                 y_dim_name: [y],      # required for combine_by_coords later on
-                longitude_name: ([y_dim_name, x_dim_name], np.array([[lon]])),
-                latitude_name: ([y_dim_name, x_dim_name], np.array([[lat]])),
+                longitude_name: ([y_dim_name, x_dim_name], np.array([lon])),
+                latitude_name: ([y_dim_name, x_dim_name], np.array([lat])),
+                # longitude_name: lon[0],
+                # latitude_name: lat[0],
                 }
+
     FWI_dataset_ixy = hFWI_output_to_xarray_dataset(
         FWI_dataframe_ixy,
         fire_season_mask_ixy,
@@ -319,4 +334,4 @@ if __name__ == "__main__":
 
     end_time = time.time()
     n_minutes, n_seconds = divmod(end_time - start_time, 60)
-    print(f"Finished in {int(n_minutes)} minutes and {n_seconds:.2f} seconds.")
+    print(f"Finished in {int(n_minutes)} minutes and {n_seconds:.0f} seconds.")

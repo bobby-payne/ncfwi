@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import time
 from scipy.ndimage import uniform_filter1d
 from typing import Union
 from numba import njit
@@ -111,8 +112,44 @@ def adjust_for_shoulder_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
     return fire_season_mask_adjusted
 
 
+def make_mask_hourly(fire_season_mask_daily: np.ndarray, utc_offset: int = 0) -> np.ndarray:
+    """
+    Convert a daily fire season mask to an hourly fire season mask.
+
+    Parameters
+    ----------
+    fire_season_mask_daily : np.ndarray
+        A boolean mask indicating the fire season on a daily basis. Shape (N_days x 1 x 1).
+    utc_offset : int, optional
+        The UTC offset to convert the time dimension to local time. Default is 0.
+
+    Returns
+    -------
+    np.ndarray
+        A boolean mask indicating the fire season on an hourly basis.
+    """
+
+    if utc_offset == 0:
+        fire_season_mask_hourly = np.repeat(fire_season_mask_daily, 24, axis=0)
+    elif utc_offset > 0:
+        raise NotImplementedError("UTC offset > 0 not implemented yet.")
+    else:
+        fire_season_mask_hourly_start = np.repeat(fire_season_mask_daily[0], np.abs(utc_offset), axis=0)[:, :, np.newaxis]
+        fire_season_mask_hourly_end = np.repeat(fire_season_mask_daily[-1], 24 - np.abs(utc_offset), axis=0)[:, :, np.newaxis]
+        fire_season_mask_hourly_middle = np.repeat(fire_season_mask_daily[1:-1], 24, axis=0)
+        fire_season_mask_hourly = np.concatenate((
+            fire_season_mask_hourly_start,
+            fire_season_mask_hourly_middle,
+            fire_season_mask_hourly_end
+        ), axis=0)
+
+    return fire_season_mask_hourly
+
+
+
 def compute_fire_season(wx_data: xr.Dataset,
-                        return_as_xarray: bool = False
+                        return_as_xarray: bool = False,
+                        utc_offset: int = 0,
                         ) -> Union[np.ndarray, xr.Dataset]:
     """
     Compute the fire season from the maximum daily temperature.
@@ -125,6 +162,9 @@ def compute_fire_season(wx_data: xr.Dataset,
         If True, returns the result as an xarray Dataset with the same
         dimensions as temperature_data. If False, returns a numpy array.
         Default is False.
+    utc_offset : int, optional
+        The UTC offset to convert the time dimension to local time.
+        Default is 0.
     Returns
     -------
     xr.Dataset
@@ -166,9 +206,9 @@ def compute_fire_season(wx_data: xr.Dataset,
         season_consecutive_days
     )
     fire_season_mask = adjust_for_shoulder_seasons(fire_season_mask)
-    
+
     # daily -> hourly
-    fire_season_mask = np.repeat(fire_season_mask, 24, axis=0)
+    fire_season_mask = make_mask_hourly(fire_season_mask, utc_offset=utc_offset)
 
     if return_as_xarray:
         fire_season_mask_xr = xr.DataArray(
