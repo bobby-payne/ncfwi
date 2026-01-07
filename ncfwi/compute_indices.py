@@ -109,6 +109,8 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
     lon = wx_data_ixy["long"].values[0]
     lat = wx_data_ixy["lat"].values[0]
     UTC_offset = get_timezone_UTC_offset(lat, lon)
+    if UTC_offset > 0:
+        raise NotImplementedError("Timezones with UTC offsets > 0 are not yet supported.")
 
     # hFWI expects local time, so convert time from UTC to local time
     wx_data_ixy['time'] = wx_data_ixy['time'] + pd.Timedelta(hours=UTC_offset)
@@ -230,6 +232,14 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
             },
             name="PFS_PREC"
         )
+
+    # Lastly, undo the UTC to local time conversion on the time coordinate
+    FWI_dataset_ixy['time'] = FWI_dataset_ixy['time'] - pd.Timedelta(hours=UTC_offset)
+
+    # Delete the last few timesteps since there's not enough info to compute FWIs for it
+    # if UTC_offset < 0:
+    #     FWI_dataset_ixy = FWI_dataset_ixy.isel({t_dim_name: slice(0, int(UTC_offset))})
+    # print(FWI_dataset_ixy[t_dim_name].values[-1])
 
     return FWI_dataset_ixy
 
