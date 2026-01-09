@@ -38,5 +38,11 @@ You can specify which indices and/or weather variables you would like returned i
 
 **Important**: Input variables are assumed to be in UTC. However, output variables are given in **local** time! (This behaviour is subject to change in a future update).
 
+## Known Issues
+
+- Cannot handle domains that cover more than one timezone
+- Non-fire season dependent weather variables are saved with season mask applied to them
+- See [issues](https://github.com/bobby-payne/ncfwi/issues)
+
 ## Feedback and Bug Reports
 If you have any suggestions or wish to report a bug, please feel free to contribute by [creating an issue](https://github.com/bobby-payne/ncfwi/issues).
