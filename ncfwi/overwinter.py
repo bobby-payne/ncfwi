@@ -88,7 +88,7 @@ def get_prefs_precip_accum_for_grid_point(
 
 def overwinter_DC (final_fall_DC: float,
                    winter_precip_accum: float,
-                   ) -> int:
+                   ) -> float:
     """
     Overwinter the Drought Code (DC) using the accumulated precipitation
     after the fire season ends.
@@ -119,4 +119,4 @@ def overwinter_DC (final_fall_DC: float,
     startup_DC = 400. * np.log(800. / spring_moisture_equivalent_DC)
     startup_DC = np.clip(startup_DC, 15, None)
 
-    return int(startup_DC)
+    return float(startup_DC)

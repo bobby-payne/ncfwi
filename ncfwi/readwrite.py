@@ -166,6 +166,7 @@ def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None
     path_out = config["settings"]["output_dir"]
     output_vars = config["settings"]["output_vars"]
     overwinter = config["settings"]["overwinter"]
+    t_dim_name = config["data_vars"]["t_dim_name"]
     if overwinter and "PFS_PREC" not in output_vars:
         output_vars = np.append(output_vars, ["PFS_PREC"])
 
@@ -173,6 +174,23 @@ def combine_batched_files(year: int, drop_vars: list[str] | None = None) -> None
         var_path = os.path.join(path_out, str(var_name))
         files = sorted(glob(os.path.join(var_path, f"{year}_*.nc")))
         dataset = xr.open_mfdataset(files, combine="nested", chunks={})
+
+        # HACK: Special handling for PFS_PREC (to be fixed later)
+        # the issue is that as certain grid points (tz=-7?) the PFS_PREC
+        # is given a time dimension of length 8761 which is just the same
+        # value repeated over and over, except for the first idxs which are nan.
+        if var_name == "PFS_PREC" and "time" in dataset.dims:
+            dataset = dataset.isel(time=100, drop=True)
+
+        # HACK: drop the last few time steps because of multiple timezones in domain
+        # (done by restricting time range to current year)
+        if t_dim_name in dataset.dims:
+            dataset = dataset.sel({
+                t_dim_name: slice(
+                    f"{year}-01-01T00:00",
+                    f"{year}-12-31T23:00"
+                )})
+
         if drop_vars is not None:
             dataset = dataset.drop_vars(drop_vars, errors="ignore")
         dataset = dataset.load() # Load into memory to avoid issues when saving

@@ -253,7 +253,8 @@ def xarray_to_pandas_dataframe(wx_data: xr.Dataset) -> pd.DataFrame:
 
 def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
                                   season_mask: Union[NoneType, np.ndarray],
-                                  dataset_coords: dict) -> xr.Dataset:
+                                  dataset_coords: dict,
+                                  utc_offset: float) -> xr.Dataset:
     """
     Converts the output of the cffdrs-ng hFWI function (pandas dataframe)
     to an xarray Dataset.
@@ -269,6 +270,8 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
             A dictionary containing the coordinates to assign to
             the xarray Dataset at its creation. Time coordinate must
             align with the MASKED data, (i.e., not the entire year.)
+        utc_offset : float
+            The UTC offset for the location, used to adjust the time coordinate.
 
     Returns:
         fwi_dataset : xarray.Dataset
@@ -308,7 +311,17 @@ def hFWI_output_to_xarray_dataset(hFWI_dataframe: pd.DataFrame,
         coords=dataset_coords
     )
 
-    # The season_mask is handled differently
+    # Since the season mask starts on Dec31 (t=24 - |utc_offset|) of the previous year,
+    # (whereas FWI starts on Jan1 00:00 of the current year),
+    # delete the first |utc_offset| values of mask and add |utc_offset| values at the end
+
+    season_mask = season_mask[24 - np.abs(int(utc_offset)):, :, :]
+    season_mask_end = np.repeat(season_mask[-1], 24 - np.abs(int(utc_offset)), axis=0)[:, :, np.newaxis]
+    season_mask = np.concatenate((
+        season_mask,
+        season_mask_end,
+    ), axis=0)
+
     if 'MASK' in output_vars:
         season_mask_dataset = xr.Dataset(
             {
@@ -376,17 +389,19 @@ def get_empty_hFWI_dataframe(year: int, lat: float, lon: float, utc_offset: floa
     ]
 
     # Create an empty DataFrame with the specified columns
-    empty_df = pd.DataFrame(columns=colnames_out)
+    time_range = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
+    n_hours = len(time_range)
 
-    # Add a timestamp column for the entire year
-    empty_df['time'] = pd.date_range(f'{year}-01-01', f'{year}-12-31 23:00', freq='h')
-    empty_df['date'] = empty_df['time'].dt.date
-    empty_df['yr'] = empty_df['time'].dt.year
-    empty_df['mon'] = empty_df['time'].dt.month
-    empty_df['day'] = empty_df['time'].dt.day
-    empty_df['hr'] = empty_df['time'].dt.hour
-    empty_df['lat'] = lat
-    empty_df['long'] = lon
-    empty_df['timezone'] = utc_offset
+    empty_df = pd.DataFrame({
+        'time': time_range,
+        'date': [d.date() for d in time_range],
+        'yr': time_range.year,
+        'mon': time_range.month,
+        'day': time_range.day,
+        'hr': time_range.hour,
+        'lat': [lat] * n_hours,
+        'long': [lon] * n_hours,
+        'timezone': [utc_offset] * n_hours,
+    }, columns=colnames_out)
 
     return empty_df

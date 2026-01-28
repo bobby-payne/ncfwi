@@ -2,6 +2,7 @@
 ---
 This is a Python package that ingests hourly gridded netcdf weather data (temperature, wind speed, relative humidity, and precipitation) to calculate and produce hourly gridded Fire Weather Indices (FWIs) according to the Canadian Forest Fire Danger Rating System (CFFDRS). Note that this package is **unofficial** and is not endorsed by NRCAN/RNCAN—it is purely for the purposes of my own research.
 
+**Note**: I am planning on re-writing this package from the ground up, as in its current state it is fairly inflexible and has several small inconsistencies that I have not been able to remedy. In the meantime, I would advise against its use unless you're willing to fiddle around with it to make it fit your needs. Feel free to reach out with any questions.
 ---
 
 ## Installation

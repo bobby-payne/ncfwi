@@ -95,7 +95,7 @@ def adjust_for_shoulder_seasons(fire_season_mask: np.ndarray) -> np.ndarray:
     np.ndarray
         A boolean mask indicating the adjusted fire season.
     """
-    T, H, W = fire_season_mask.shape
+    _, H, W = fire_season_mask.shape
     fire_season_mask_adjusted = fire_season_mask.copy()
 
     for i in range(H):
@@ -190,7 +190,7 @@ def compute_fire_season(wx_data: xr.Dataset,
         axis=0,
         mode="constant",
         cval=0.,
-        origin=1
+        origin=1,
     )
     idx_below_stop_temp_consecutive = uniform_filter1d(
         idx_below_stop_temp.data.astype("int8"),
@@ -198,7 +198,7 @@ def compute_fire_season(wx_data: xr.Dataset,
         axis=0,
         mode="constant",
         cval=0.,
-        origin=1
+        origin=1,
     )
     fire_season_mask = apply_fire_season_logic(
         idx_above_start_temp_consecutive,
@@ -206,6 +206,11 @@ def compute_fire_season(wx_data: xr.Dataset,
         season_consecutive_days
     )
     fire_season_mask = adjust_for_shoulder_seasons(fire_season_mask)
+
+    # shift mask forward by 1 day, as fire season starts the day after the threshold is met
+    fire_season_mask_shifted = np.zeros_like(fire_season_mask)
+    fire_season_mask_shifted[1:] = fire_season_mask[:-1]     
+    fire_season_mask = fire_season_mask_shifted
 
     # daily -> hourly
     fire_season_mask = make_mask_hourly(fire_season_mask, utc_offset=utc_offset)

@@ -125,6 +125,13 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         utc_offset=int(UTC_offset),
     )['MASK'].values
 
+    # print first index where MASK=1
+    mask_indices = np.where(fire_season_mask_ixy)[0]
+    if len(mask_indices) > 0:
+        first_index = 0 #mask_indices[0]
+        first_date = wx_data_ixy['time'].values[first_index]
+        # print(f"Year {year}, Grid point (x={x}, y={y}): First index where MASK=1 is {first_index}, date: {first_date}")
+
     # Apply the fire season mask to the data at this grid point
     wx_dataframe_masked_ixy = wx_dataframe_ixy[fire_season_mask_ixy]
 
@@ -183,13 +190,18 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         FWI_dataframe_ixy = get_empty_hFWI_dataframe(year, lat, lon, UTC_offset)
 
     # Convert the output pandas dataframe into an xarray Dataset
-    # IMPORTANT: The provided time coordinate in dataset_coords must line up
-    # with the data that have been MASKED, not the entire year.
-    fwi_t_dim = np.arange(
-        np.datetime64(f"{year}-01-01T00:00"),
-        np.datetime64(f"{year+1}-01-01T00:00"),
-        np.timedelta64(1, "h"),
-    )
+    # fwi_t_dim = np.arange(
+    #     np.datetime64(f"{year}-01-01T00:00"),
+    #     np.datetime64(f"{year+1}-01-01T00:00"),
+    #     np.timedelta64(1, "h"),
+    # )
+    if UTC_offset <= 0:
+        utc_start = pd.Timestamp(f"{year}-01-01 00:00") - pd.Timedelta(hours=UTC_offset)
+        utc_end = pd.Timestamp(f"{year+1}-01-01 00:00") - pd.Timedelta(hours=UTC_offset)
+        fwi_t_dim = pd.date_range(utc_start, utc_end, freq='h', inclusive='left').to_numpy()
+    else:
+        raise NotImplementedError("Timezones with UTC offsets > 0 are not yet supported.")
+
     if latitude_name == y_dim_name and longitude_name == x_dim_name:
         dataset_coords = {
                 t_dim_name: fwi_t_dim,  # array of datetimes
@@ -213,6 +225,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         FWI_dataframe_ixy,
         fire_season_mask_ixy,
         dataset_coords,
+        UTC_offset
     )
 
     # Add this year's post-fire season accumulated precip to FWI dataset
@@ -234,7 +247,7 @@ def compute_FWIs_for_grid_point(wx_data_i: xr.Dataset,
         )
 
     # Lastly, undo the UTC to local time conversion on the time coordinate
-    FWI_dataset_ixy['time'] = FWI_dataset_ixy['time'] - pd.Timedelta(hours=UTC_offset)
+    # FWI_dataset_ixy['time'] = FWI_dataset_ixy['time'] - pd.Timedelta(hours=UTC_offset)
 
     # Delete the last few timesteps since there's not enough info to compute FWIs for it
     # if UTC_offset < 0:
